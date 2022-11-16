@@ -20,10 +20,10 @@ module top_module();
   initial
   begin
     in_instr = 32'h00020137; //          	lui	sp,0x20
-    #10;
-    $display("instr = %b\nopcode = %b\nrd = %d\nrs1 = %d\nrs2 = %d\nfunct3 = %b\nfunct7 = %b\nimm = %b\n\n\n", in_instr, opcode, rd, rs1, rs2, funct3, funct7, imm);
+    #1;
+    $display("instr = %b\nopcode = %b\nrd = %d\nrs1 = %d\nrs2 = %d\nfunct3 = %b\nfunct7 = %b\nimm = %h\n\n\n", in_instr, opcode, rd, rs1, rs2, funct3, funct7, imm);
     in_instr = 32'h040010ef; //          	jal	ra,1044
-    #10;
-    $display("instr = %b\nopcode = %b\nrd = %d\nrs1 = %d\nrs2 = %d\nfunct3 = %b\nfunct7 = %b\nimm = %b\n\n\n", in_instr, opcode, rd, rs1, rs2, funct3, funct7, imm);
+    #1;
+    $display("instr = %b\nopcode = %b\nrd = %d\nrs1 = %d\nrs2 = %d\nfunct3 = %b\nfunct7 = %b\nimm = %h\n\n\n", in_instr, opcode, rd, rs1, rs2, funct3, funct7, imm);
   end
 endmodule

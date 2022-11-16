@@ -22,7 +22,7 @@ module decoder (input wire[31: 0] instr,
     rs2 <= instr[24: 20];
     funct3 <= instr[14: 12];
     funct7 <= instr[31: 25];
-    case (opcode)
+    case (instr[6: 0])
       `Opcode_CalcI:
       begin
         case (funct3)
@@ -41,7 +41,7 @@ module decoder (input wire[31: 0] instr,
       `Opcode_StoreMem: // B type
         imm <= {{20{instr[31]}}, { instr[7]}, instr[30: 25], instr[11: 8], {1'b0}};
       `Opcode_JAL: // J type
-        imm <= {{12{instr[31]}}, instr[19: 12], {instr[20]}, instr[30: 25], instr[24: 21], {1'b0}};
+        imm <= {{12{instr[31]}}, instr[19: 12], {instr[20]}, instr[30: 21], {1'b0}};
       `Opcode_LUI, `Opcode_AUIPC: // U type
         imm <= {instr[31: 12], {12{1'b0}}};
     endcase

@@ -69,6 +69,7 @@ module alu (
         end
       end
       else begin
+        iq_write_enable_out <= `False;
         if (!clear_flag_in && have_result) begin
           have_result <= `False;
           iq_write_enable_out <= `True;

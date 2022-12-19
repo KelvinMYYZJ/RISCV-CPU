@@ -243,6 +243,10 @@ module rs (
           if (rs_size) begin
             break_flag = 0;
             for (i = 0;i < `RsLen && !break_flag;i = i + 1) begin
+              if (rs_avl[i] ) begin
+                // if (rs_rs1_is_renamed[i]) $display("rs1 : %d", rs_rs1_rename[i]);
+                // if (rs_rs2_is_renamed[i]) $display("rs2 : %d", rs_rs2_rename[i]);
+              end
               if (rs_avl[i] && (!rs_rs1_is_renamed[i] && !rs_rs2_is_renamed[i])) begin
                 if (rs_instr_opcode[i] == `Opcode_JAL) begin
                   $display("%h", rs_pc[i]);
@@ -275,6 +279,7 @@ module rs (
                   end
                 end
                 else if (rs_instr_opcode[i] == `Opcode_StoreMem) begin
+                  $display("%h", rs_pc[i]);
                   rs_avl[i] <= `False;
                   rs_size <= rs_size - 1;
                   rs_ls_cnt <= rs_ls_cnt - 1;
@@ -294,6 +299,7 @@ module rs (
                     rs_avl[i] <= `False;
                     rs_size <= rs_size - 1;
                     alu_calc_enable_out <= `True;
+                    alu_pos_in_iq_out <= rs_order[i];
                     break_flag = 1;
                     if (rs_instr_func3[i] == 0) begin
                       if (rs_instr_func7[i] == 0)
@@ -323,6 +329,7 @@ module rs (
                     rs_avl[i] <= `False;
                     rs_size <= rs_size - 1;
                     alu_calc_enable_out <= `True;
+                    alu_pos_in_iq_out <= rs_order[i];
                     break_flag = 1;
                     if (rs_instr_func3[i] == 0)
                       alu_calc_code_out <= `CalcCodeAdd;

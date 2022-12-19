@@ -54,7 +54,7 @@ module cpu(
   wire [`IqAddrType] alu_rs_pos_in_iq;
 
   // decoder - instr queue
-  wire dc_iq_decode_ebable;
+  wire dc_iq_decode_enable;
   wire [`InstrType] dc_iq_instr;
   wire dc_iq_result_enable;
   wire [`OpcodeType] dc_iq_opcode;
@@ -88,7 +88,7 @@ module cpu(
   //instr queue - rs
   wire iq_rs_commit_flag;
   wire iq_rs_instr1_enable;
-  wire iq_rs_instr1_idx;
+  wire [`IqAddrType] iq_rs_instr1_idx;
   wire iq_rs_instr1_ready;
   wire [`RsAddrType] iq_rs_instr1_in_rs;
   wire [`RsAddrType] iq_rs_instr1_pos_in_rs;
@@ -106,7 +106,7 @@ module cpu(
   wire [`AddrType] iq_rs_instr1_tar_addr;
   wire iq_rs_instr1_prediction;
   wire iq_rs_instr2_enable;
-  wire iq_rs_instr2_idx;
+  wire [`IqAddrType] iq_rs_instr2_idx;
   wire iq_rs_instr2_ready;
   wire [`RsAddrType] iq_rs_instr2_in_rs;
   wire [`RsAddrType] iq_rs_instr2_pos_in_rs;
@@ -123,6 +123,8 @@ module cpu(
   wire [`AddrType] iq_rs_instr2_instr_pc;
   wire [`AddrType] iq_rs_instr2_tar_addr;
   wire iq_rs_instr2_prediction;
+  wire iq_rs_push_result_enable;
+  wire [`IqAddrType] iq_rs_push_idx;
   wire iq_rs_write_enable;
   wire [`IqAddrType] iq_rs_write_idx;
   wire iq_rs_write_result_enable;
@@ -198,7 +200,7 @@ module cpu(
             .rdy(rdy_in),
             .chip_enable(),
             .update_stat(global_update_stat),
-            .decode_ebable(dc_iq_decode_ebable),
+            .decode_ebable(dc_iq_decode_enable),
             .instr(dc_iq_instr),
             .result_enable_out(dc_iq_result_enable),
             .opcode(dc_iq_opcode),
@@ -301,6 +303,8 @@ module cpu(
                 .rs_instr2_instr_pc_out(iq_rs_instr2_instr_pc),
                 .rs_instr2_tar_addr_out(iq_rs_instr2_tar_addr),
                 .rs_instr2_prediction_out(iq_rs_instr2_prediction),
+                .rs_push_result_enable_in(iq_rs_push_result_enable),
+                .rs_push_idx_in(iq_rs_push_idx),
                 .rs_write_enable_in(iq_rs_write_enable),
                 .rs_write_idx_in(iq_rs_write_idx),
                 .rs_write_result_enable_in(iq_rs_write_result_enable),
@@ -439,6 +443,8 @@ module cpu(
        .iq_instr2_instr_pc_in(iq_rs_instr2_instr_pc),
        .iq_instr2_tar_addr_in(iq_rs_instr2_tar_addr),
        .iq_instr2_prediction_in(iq_rs_instr2_prediction),
+       .iq_push_result_enable_out(iq_rs_push_result_enable),
+       .iq_push_idx_out(iq_rs_push_idx),
        .iq_write_enable_out(iq_rs_write_enable),
        .iq_write_idx_out(iq_rs_write_idx),
        .iq_write_result_enable_out(iq_rs_write_result_enable),

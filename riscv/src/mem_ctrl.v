@@ -33,7 +33,8 @@ module mem_ctrl (
 
     // ram
     // output reg ram_enable,
-    output reg ram_rw_select_out,                     // read/write select (read: 1, write: 0)
+    // read/write select (read: 1, write: 0)
+    output reg ram_rw_select_out,
     output reg [`AddrType] ram_addr_out,
     output reg [`ByteType] ram_data_out,
     input wire [`ByteType] ram_data_in
@@ -45,7 +46,7 @@ module mem_ctrl (
   reg [1: 0] stat;
 
   // which byte is io now
-  reg [1: 0] ram_io_stat;
+  reg [2: 0] ram_io_stat;
   always @ (posedge clk) begin
     if (rst == `True) begin
       chip_enable <= `False;
@@ -98,12 +99,12 @@ module mem_ctrl (
           ram_io_stat <= ram_io_stat + 1;
           ram_addr_out <= ram_addr_out + 1;
           case (ram_io_stat)
-            0: if_data_out[7 : 0] <= ram_data_in;
-            1: if_data_out[15 : 8] <= ram_data_in;
-            2: if_data_out[23 : 16] <= ram_data_in;
-            3: if_data_out[31 : 24] <= ram_data_in;
+            1: if_data_out[7 : 0] <= ram_data_in;
+            2: if_data_out[15 : 8] <= ram_data_in;
+            3: if_data_out[23 : 16] <= ram_data_in;
+            4: if_data_out[31 : 24] <= ram_data_in;
           endcase
-          if (ram_io_stat == 3) begin
+          if (ram_io_stat - 1 == 3) begin
             // ram_enable <= `False;
             ram_addr_out <= `MaxWord;
             stat <= idle;
@@ -115,12 +116,12 @@ module mem_ctrl (
           ram_io_stat <= ram_io_stat + 1;
           ram_addr_out <= ram_addr_out + 1;
           case (ram_io_stat)
-            0: lb_data_out[7 : 0] <= ram_data_in;
-            1: lb_data_out[15 : 8] <= ram_data_in;
-            2: lb_data_out[23 : 16] <= ram_data_in;
-            3: lb_data_out[31 : 24] <= ram_data_in;
+            1: lb_data_out[7 : 0] <= ram_data_in;
+            2: lb_data_out[15 : 8] <= ram_data_in;
+            3: lb_data_out[23 : 16] <= ram_data_in;
+            4: lb_data_out[31 : 24] <= ram_data_in;
           endcase
-          if (ram_io_stat == lb_len_in) begin
+          if (ram_io_stat - 1 == lb_len_in) begin
             // ram_enable <= `False;
             ram_addr_out <= `MaxWord;
             stat <= idle;
@@ -132,12 +133,12 @@ module mem_ctrl (
           ram_io_stat <= ram_io_stat + 1;
           ram_addr_out <= ram_addr_out + 1;
           case (ram_io_stat)
-            0: ram_data_out <= iq_data_in[7 : 0];
-            1: ram_data_out <= iq_data_in[15 : 8];
-            2: ram_data_out <= iq_data_in[23 : 16];
-            3: ram_data_out <= iq_data_in[31 : 24];
+            1: ram_data_out <= iq_data_in[7 : 0];
+            2: ram_data_out <= iq_data_in[15 : 8];
+            3: ram_data_out <= iq_data_in[23 : 16];
+            4: ram_data_out <= iq_data_in[31 : 24];
           endcase
-          if (ram_io_stat == iq_len_in) begin
+          if (ram_io_stat - 1 == iq_len_in) begin
             // ram_enable <= `False;
             ram_addr_out <= `MaxWord;
             stat <= idle;

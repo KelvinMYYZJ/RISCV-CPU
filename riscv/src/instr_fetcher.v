@@ -49,7 +49,7 @@ module instr_fetcher
           pc <= iq_write_pc_val_in;
       end
       else begin
-        iq_result_enable_out <= `True;
+        iq_result_enable_out <= `False;
         if (clear_flag_in) begin
           pc <= clear_pc_in;
         end

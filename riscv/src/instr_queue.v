@@ -57,7 +57,7 @@ module instr_queue (
     output wire rs_commit_flag_out,
     // instr1 : the first instr to push into rs
     output reg rs_instr1_enable_out,
-    output reg rs_instr1_idx_out,
+    output reg [`IqAddrType] rs_instr1_idx_out,
     output wire rs_instr1_ready_out,
     output wire [`RsAddrType] rs_instr1_in_rs_out,
     output wire [`RsAddrType] rs_instr1_pos_in_rs_out,
@@ -76,7 +76,7 @@ module instr_queue (
     output wire rs_instr1_prediction_out,
     // instr2 : the first non-loadstore instr to push into rs
     output reg rs_instr2_enable_out,
-    output reg rs_instr2_idx_out,
+    output reg [`IqAddrType] rs_instr2_idx_out,
     output wire rs_instr2_ready_out,
     output wire [`RsAddrType] rs_instr2_in_rs_out,
     output wire [`RsAddrType] rs_instr2_pos_in_rs_out,
@@ -93,6 +93,9 @@ module instr_queue (
     output wire [`AddrType] rs_instr2_instr_pc_out,
     output wire [`AddrType] rs_instr2_tar_addr_out,
     output wire rs_instr2_prediction_out,
+    // accept report :  instr pushed into rs
+    input wire rs_push_result_enable_in,
+    input wire [`IqAddrType] rs_push_idx_in,
     // accept rs input
     input wire rs_write_enable_in,
     input wire [`IqAddrType] rs_write_idx_in,
@@ -217,6 +220,11 @@ module instr_queue (
       iq_head <= 0;
       iq_tail <= 0;
       instr_fetch_stat <= InstrFetchStatIdle;
+      instr_commit_stat <= InstrCommitStatIdle;
+      dc_decode_enable_out <= `False;
+      clear_flag_out <= `False;
+      rs_instr1_enable_out <= `False;
+      rs_instr2_enable_out <= `False;
     end
     else begin
       chip_enable <= rdy;
@@ -226,6 +234,9 @@ module instr_queue (
   always @(posedge clk) begin
     if (chip_enable) begin
       if (update_stat) begin
+        if (rs_push_result_enable_in) begin
+          iq_in_rs[rs_push_idx_in] <= `True;
+        end
         if (rs_write_enable_in) begin
           if (rs_write_result_enable_in) begin
             iq_result[rs_write_idx_in] <= rs_write_result_in;
@@ -284,7 +295,7 @@ module instr_queue (
         rs_instr2_enable_out <= `False;
         break_flag = 0;
         for (i = iq_head;i != iq_tail && !break_flag;i = (i == `IqLen - 1) ? 0 : i + 1) begin
-          if (!(rs_write_enable_in && rs_write_idx_in == i)) begin
+          if (!(rs_write_enable_in && rs_write_idx_in == i) && !(rs_push_result_enable_in && rs_push_idx_in == i)) begin
             // TODO? : other write all continue
             if (!iq_in_rs[i]) begin
               rs_instr1_enable_out <= `True;
@@ -298,7 +309,7 @@ module instr_queue (
           // get instr2
           break_flag = 0;
           for (i = iq_head;i != iq_tail && !break_flag;i = (i == `IqLen - 1) ? 0 : i + 1) begin
-            if (!(rs_write_enable_in && rs_write_idx_in == i)) begin
+            if (!(rs_write_enable_in && rs_write_idx_in == i) && !(rs_push_result_enable_in && rs_push_idx_in == i)) begin
               // TODO : other write all continue
               if (!iq_in_rs[i] && (iq_instr_optype[i] != `Opcode_StoreMem || iq_instr_optype[i] != `Opcode_LoadMem)) begin
                 rs_instr2_enable_out <= `True;
@@ -310,6 +321,9 @@ module instr_queue (
         end
       end
       else begin
+        if_write_pc_sig_out <= `False;
+        rs_cdb_enable_out <= `False;
+        rs_commit_reg_enable_out <= `False;
         if (clear_flag_out) begin
           clear_flag_out <= `False;
           iq_head <= 0;
@@ -333,6 +347,7 @@ module instr_queue (
           if (iq_head != iq_tail && iq_ready[iq_head] && !iq_need_cdb[iq_head] && instr_commit_stat == InstrCommitStatIdle) begin
             iq_head <= iq_head + 1;
             if (iq_instr_optype[iq_head] == `Opcode_StoreMem) begin
+              mc_store_enable_out <= `True;
               instr_commit_stat <= InstrCommitStatStoring;
               mc_addr_out <= iq_tar_addr[iq_head];
               mc_data_out <= iq_result[iq_head];

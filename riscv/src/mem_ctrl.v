@@ -44,7 +44,9 @@ module mem_ctrl (
   localparam deal_lb = 2;
   localparam deal_iq = 3;
   reg [1: 0] stat;
-
+  reg if_pending;
+  reg lb_pending;
+  reg iq_pending;
   // which byte is io now
   reg [2: 0] ram_io_stat;
   always @ (posedge clk) begin
@@ -64,29 +66,36 @@ module mem_ctrl (
     if (chip_enable) begin
       if (clear_flag_in) begin
         stat <= idle;
-        // ram_enable <= `False;
         ram_addr_out <= `MaxWord;
+        iq_pending <= `False;
+        if_pending <= `False;
+        lb_pending <= `False;
       end
       else begin
+        if (iq_store_enable_in) iq_pending <= `True;
+        if (if_fetch_enable_in) if_pending <= `True;
+        if (lb_fetch_enable_in) lb_pending <= `True;
         if (!update_stat) begin
           if_result_enable_out <= `False;
           lb_result_enable_out <= `False;
           iq_result_enable_out <= `False;
           if (stat == idle) begin
-            if (iq_store_enable_in == `True) begin
+            if (iq_store_enable_in || iq_pending) begin
+              iq_pending <= `False;
               stat <= deal_iq;
-              stat <= deal_if;
               ram_io_stat <= 0;
               ram_addr_out <= iq_addr_in;
               ram_rw_select_out <= 1;
             end
-            else if (if_fetch_enable_in == `True) begin
+            else if (if_fetch_enable_in || if_pending) begin
+              if_pending <= `False;
               stat <= deal_if;
               ram_io_stat <= 0;
               ram_addr_out <= if_addr_in;
               ram_rw_select_out <= 0;
             end
-            else if (lb_fetch_enable_in == `True) begin
+            else if (lb_fetch_enable_in || lb_pending) begin
+              lb_pending <= `False;
               stat <= deal_lb;
               ram_io_stat <= 0;
               ram_addr_out <= lb_addr_in;

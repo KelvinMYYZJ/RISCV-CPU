@@ -44,6 +44,11 @@ module load_buffer(
       chip_enable <= `False;
       load_stat <= DataLoadStatIdle;
       rs_full_out <= `False;
+      mc_fetch_enable_out <= `False;
+      iq_write_enable_out <= `False;
+      iq_write_result_enable_out <= `False;
+      iq_write_need_cdb_enable_out <= `False;
+      iq_write_ready_enable_out <= `False;
     end
     else begin
       chip_enable <= rdy;
@@ -62,6 +67,8 @@ module load_buffer(
         end
       end
       else begin
+        iq_write_enable_out <= `False;
+        mc_fetch_enable_out <= `False;
         if (load_stat == DataLoadStatIdle && rs_load_enable_in) begin
           rs_full_out <= `True;
           mc_fetch_enable_out <= `True;
@@ -75,7 +82,6 @@ module load_buffer(
       if (load_stat == DataLoadStatLoading && mc_result_enable_in) begin
         rs_full_out <= `False;
         load_stat <= DataLoadStatIdle;
-        mc_fetch_enable_out <= `False;
         iq_write_enable_out <= `True;
         iq_write_idx_out <= pos_in_iq;
         iq_write_result_enable_out <= `True;

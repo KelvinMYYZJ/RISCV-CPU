@@ -134,6 +134,8 @@ module rs (
       iq_write_pos_in_rs_enable_out <= `False;
       iq_write_tar_addr_enable_out <= `False;
       iq_push_result_enable_out <= `False;
+      alu_calc_enable_out <= `False;
+      lb_load_enable_out <= `False;
       // TODO
     end
     else begin
@@ -167,11 +169,16 @@ module rs (
         // TODO? : other value update
       end
       else begin
+        alu_calc_enable_out <= `False;
+        lb_load_enable_out <= `False;
         if (clear_flag_in) begin
           rs_size <= 0;
           rs_ls_cnt <= 0;
           for (i = 0;i < `RsLen;i = i + 1) begin
             rs_avl[i] <= `False;
+          end
+          for (i = 0;i < `RegLen;i = i + 1) begin
+            reg_is_rename[i] <= `False;
           end
         end
         else begin
@@ -238,6 +245,7 @@ module rs (
             for (i = 0;i < `RsLen && !break_flag;i = i + 1) begin
               if (rs_avl[i] && (!rs_rs1_is_renamed[i] && !rs_rs2_is_renamed[i])) begin
                 if (rs_instr_opcode[i] == `Opcode_JAL) begin
+                  $display("%h", rs_pc[i]);
                   rs_avl[i] <= `False;
                   rs_size <= rs_size - 1;
                   iq_write_enable_out <= `True;
@@ -255,6 +263,7 @@ module rs (
                   if (!lb_full_in && (iq_have_store_out || (iq_head_out <= iq_first_store_idx_out ?
                                       (iq_head_out <= rs_order[i] && rs_order[i] < iq_first_store_idx_out) :
                                       (iq_head_out <= rs_order[i] || rs_order[i] < iq_first_store_idx_out) ))) begin
+                    $display("%h", rs_pc[i]);
                     rs_avl[i] <= `False;
                     rs_size <= rs_size - 1;
                     rs_ls_cnt <= rs_ls_cnt - 1;
@@ -281,6 +290,7 @@ module rs (
                 end
                 else if (rs_instr_opcode[i] == `Opcode_Calc) begin
                   if (!alu_full_in) begin
+                    $display("%h", rs_pc[i]);
                     rs_avl[i] <= `False;
                     rs_size <= rs_size - 1;
                     alu_calc_enable_out <= `True;
@@ -309,6 +319,7 @@ module rs (
                 end
                 else if (rs_instr_opcode[i] == `Opcode_CalcI) begin
                   if (!alu_full_in) begin
+                    $display("%h", rs_pc[i]);
                     rs_avl[i] <= `False;
                     rs_size <= rs_size - 1;
                     alu_calc_enable_out <= `True;
@@ -332,6 +343,7 @@ module rs (
                   end
                 end
                 else if (rs_instr_opcode[i] == `Opcode_LUI) begin
+                  $display("%h", rs_pc[i]);
                   rs_avl[i] <= `False;
                   rs_size <= rs_size - 1;
                   iq_write_enable_out <= `True;
@@ -345,6 +357,7 @@ module rs (
                   break_flag = 1;
                 end
                 else if (rs_instr_opcode[i] == `Opcode_AUIPC) begin
+                  $display("%h", rs_pc[i]);
                   rs_avl[i] <= `False;
                   rs_size <= rs_size - 1;
                   iq_write_enable_out <= `True;
@@ -358,6 +371,7 @@ module rs (
                   break_flag = 1;
                 end
                 else if (rs_instr_opcode[i] == `Opcode_JALR) begin
+                  $display("%h", rs_pc[i]);
                   rs_avl[i] <= `False;
                   rs_size <= rs_size - 1;
                   iq_write_enable_out <= `True;

@@ -34,6 +34,7 @@ module alu (
   always @ (posedge clk) begin
     if (rst) begin
       chip_enable <= `False;
+      have_result <= `False;
     end
     else begin
       chip_enable <= rdy;

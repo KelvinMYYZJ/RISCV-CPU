@@ -222,6 +222,8 @@ module instr_queue (
       instr_fetch_stat <= InstrFetchStatIdle;
       instr_commit_stat <= InstrCommitStatIdle;
       dc_decode_enable_out <= `False;
+      if_fetch_enable_out <= `False;
+      mc_store_enable_out <= `False;
       clear_flag_out <= `False;
       rs_instr1_enable_out <= `False;
       rs_instr2_enable_out <= `False;
@@ -324,6 +326,9 @@ module instr_queue (
         if_write_pc_sig_out <= `False;
         rs_cdb_enable_out <= `False;
         rs_commit_reg_enable_out <= `False;
+        mc_store_enable_out <= `False;
+        if_fetch_enable_out <= `False;
+        dc_decode_enable_out <= `False;
         if (clear_flag_out) begin
           clear_flag_out <= `False;
           iq_head <= 0;
@@ -342,7 +347,6 @@ module instr_queue (
           end
           if (instr_commit_stat == InstrCommitStatStoring && mc_result_enable_in) begin
             instr_commit_stat <= InstrCommitStatIdle;
-            mc_store_enable_out <= `False;
           end
           if (iq_head != iq_tail && iq_ready[iq_head] && !iq_need_cdb[iq_head] && instr_commit_stat == InstrCommitStatIdle) begin
             iq_head <= iq_head + 1;
@@ -385,11 +389,9 @@ module instr_queue (
             dc_decode_enable_out <= `True;
             decoding_instr_pc <= if_pc_in;
             dc_instr_out <= if_instr_in;
-            if_fetch_enable_out <= `False;
           end
 
           if (instr_fetch_stat == InstrFetchStatDecoding && dc_result_enable_in) begin
-            dc_decode_enable_out <= `False;
             iq_tail <= iq_tail + 1;
             iq_ready[iq_tail] <= `False;
             iq_in_rs[iq_tail] <= `False;
@@ -411,6 +413,9 @@ module instr_queue (
               if_write_pc_sig_out <= `True;
               if_write_pc_val_out <= decoding_instr_pc + 4;
               instr_fetch_stat <= InstrFetchStatIdle;
+              if (dc_opcode_in == `Opcode_JAL) begin
+                if_write_pc_val_out <= decoding_instr_pc + dc_imm_in;
+              end
             end
           end
 

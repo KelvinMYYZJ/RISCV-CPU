@@ -344,6 +344,19 @@ module rs (
                   iq_write_need_cdb_out <= `True;
                   break_flag = 1;
                 end
+                else if (rs_instr_opcode[i] == `Opcode_AUIPC) begin
+                  rs_avl[i] <= `False;
+                  rs_size <= rs_size - 1;
+                  iq_write_enable_out <= `True;
+                  iq_write_idx_out <= rs_order[i];
+                  iq_write_ready_enable_out <= `True;
+                  iq_write_ready_out <= `True;
+                  iq_write_result_enable_out <= `True;
+                  iq_write_result_out <= rs_pc[i] + rs_imm[i];
+                  iq_write_need_cdb_enable_out <= `True;
+                  iq_write_need_cdb_out <= `True;
+                  break_flag = 1;
+                end
                 else if (rs_instr_opcode[i] == `Opcode_JALR) begin
                   rs_avl[i] <= `False;
                   rs_size <= rs_size - 1;

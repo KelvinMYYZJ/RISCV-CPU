@@ -49,6 +49,7 @@ module instr_fetcher
           pc <= iq_write_pc_val_in;
       end
       else begin
+        mc_fetch_enable_out <= `False;
         iq_result_enable_out <= `False;
         if (clear_flag_in) begin
           pc <= clear_pc_in;
@@ -59,7 +60,6 @@ module instr_fetcher
             mc_addr_out <= pc;
           end
           if (mc_result_enable_in) begin
-            mc_fetch_enable_out <= `False;
             iq_result_enable_out <= `True;
             iq_instr_out <= mc_data_in;
             iq_pc_out <= mc_addr_out;

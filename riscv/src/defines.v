@@ -50,6 +50,7 @@
 `define CalcCodeType `CalcCodeLen-1:0
 
 `define RegNum 2**`RegAddrLen
+`define RsIdxRange `RegLen-1:0
 `define False 1'b0
 `define True 1'b1
 

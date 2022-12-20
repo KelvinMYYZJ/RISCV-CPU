@@ -108,7 +108,7 @@ module instr_queue (
     input wire rs_write_pos_in_rs_enable_in,
     input wire rs_write_pos_in_rs_in,
     input wire rs_write_tar_addr_enable_in,
-    input wire rs_write_tar_addr_in,
+    input wire [`AddrType] rs_write_tar_addr_in,
     // cdb to rs
     output reg rs_cdb_enable_out,
     output reg [`IqAddrType]rs_cdb_idx_out,
@@ -177,6 +177,8 @@ module instr_queue (
   reg [`AddrType] decoding_instr_pc;
   reg pd_result_enable_in;
   reg pd_prediction_in;
+  integer commit_cnt;
+
 
   assign rs_commit_flag_out = iq_head != iq_tail && iq_ready[iq_head] && iq_need_cdb[iq_head];
   assign rs_instr1_ready_out = iq_ready[rs_instr1_idx_out];
@@ -227,6 +229,7 @@ module instr_queue (
       clear_flag_out <= `False;
       rs_instr1_enable_out <= `False;
       rs_instr2_enable_out <= `False;
+      commit_cnt = 0;
     end
     else begin
       chip_enable <= rdy;
@@ -333,6 +336,7 @@ module instr_queue (
           clear_flag_out <= `False;
           iq_head <= 0;
           iq_tail <= 0;
+          instr_fetch_stat <= InstrFetchStatIdle;
         end
         else begin
           break_flag = 0;
@@ -350,6 +354,8 @@ module instr_queue (
           end
           if (iq_head != iq_tail && iq_ready[iq_head] && !iq_need_cdb[iq_head] && instr_commit_stat == InstrCommitStatIdle) begin
             iq_head <= iq_head + 1;
+            commit_cnt = commit_cnt + 1;
+            $display("commiting, commit_cnt = %h, pc = %h", commit_cnt, iq_instr_pc[iq_head]);
             if (iq_instr_optype[iq_head] == `Opcode_StoreMem) begin
               mc_store_enable_out <= `True;
               instr_commit_stat <= InstrCommitStatStoring;
@@ -360,13 +366,16 @@ module instr_queue (
             end
             else if (iq_instr_optype[iq_head] == `Opcode_BControl) begin
               // TODO : Contact with predictor
+              $display("pc : %h, result : %h", iq_instr_pc[iq_head], iq_result[iq_head]);
               if (iq_result[iq_head] != iq_prediction[iq_head]) begin
                 clear_flag_out <= `True;
+                // $display("clear because wrong prediction, next pc is %h",iq_result[iq_head] ? iq_instr_pc[iq_head] + iq_instr_imm[iq_head] : iq_instr_pc[iq_head] + 4 );
                 clear_pc_out <= iq_result[iq_head] ? iq_instr_pc[iq_head] + iq_instr_imm[iq_head] : iq_instr_pc[iq_head] + 4 ;
               end
             end
             else begin
               if (iq_instr_rd[iq_head]) begin
+                $display("nxt_pc : %h", iq_instr_pc[iq_head]);
                 rs_commit_reg_enable_out <= `True;
                 rs_commit_reg_idx_out <= iq_instr_rd[iq_head];
                 rs_commit_reg_value_out <= iq_result[iq_head];
@@ -374,6 +383,7 @@ module instr_queue (
               end
               if (iq_instr_optype[iq_head] == `Opcode_JALR) begin
                 clear_flag_out <= `True;
+                // $display("clear because JALR, next pc is %h",iq_tar_addr[iq_head]);
                 clear_pc_out <= iq_tar_addr[iq_head];
               end
             end

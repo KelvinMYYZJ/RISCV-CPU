@@ -136,7 +136,7 @@ module cpu(
   wire iq_rs_write_pos_in_rs_enable;
   wire iq_rs_write_pos_in_rs;
   wire iq_rs_write_tar_addr_enable;
-  wire iq_rs_write_tar_addr;
+  wire [`AddrType] iq_rs_write_tar_addr;
   wire iq_rs_cdb_enable;
   wire [`IqAddrType] iq_rs_cdb_idx;
   wire [`WordType] iq_rs_cdb_value;

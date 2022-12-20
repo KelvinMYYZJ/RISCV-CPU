@@ -68,7 +68,7 @@ module rs (
     output reg iq_write_pos_in_rs_enable_out,
     output reg iq_write_pos_in_rs_out,
     output reg iq_write_tar_addr_enable_out,
-    output reg iq_write_tar_addr_out,
+    output reg [`AddrType] iq_write_tar_addr_out,
     // cdb to rs
     input wire iq_cdb_enable_in,
     input wire [`IqAddrType] iq_cdb_idx_in,
@@ -94,9 +94,11 @@ module rs (
     output reg [`AddrType] lb_addr_out,
     output reg [`IqAddrType] lb_pos_in_iq_out
   );
-  reg [`IqAddrType] reg_rename [`RegAddrType];
-  reg [`WordType] reg_val [`RegAddrType];
-  reg reg_is_rename [`RegAddrType];
+  reg [`WordType] tmp_iq_result [`IqIdxRange];
+  reg tmp_iq_result_avl [`IqIdxRange];
+  reg [`IqAddrType] reg_rename [`RegType];
+  reg [`WordType] reg_val [`RegType];
+  reg reg_is_rename [`RegType];
   reg [`RsAddrType] rs_size;
   reg [`RsAddrType] rs_ls_cnt;
   reg rs_avl[`RsIdxRange];
@@ -123,6 +125,9 @@ module rs (
       for (i = 0;i < `RsLen;i = i + 1) begin
         rs_avl[i] <= `False;
       end
+      for (i = 0;i < `IqLen;i = i + 1) begin
+        tmp_iq_result_avl[i] <= `False;
+      end
       for (i = 0;i < `RegLen;i = i + 1) begin
         reg_val[i] <= `ZeroWord;
         reg_is_rename[i] <= `False;
@@ -148,20 +153,30 @@ module rs (
     if (chip_enable) begin
       if (update_stat) begin
         if (iq_cdb_enable_in) begin
+          tmp_iq_result[iq_cdb_idx_in] <= iq_cdb_value_in;
+          tmp_iq_result_avl[iq_cdb_idx_in] <= `True;
+          $display("tmp_iq_result_avl[%h] set true",iq_cdb_idx_in);
           for (i = 0;i < `RsLen; i = i + 1)
             if (rs_avl[i]) begin
               if (rs_rs1_is_renamed[i] && rs_rs1_rename[i] == iq_cdb_idx_in) begin
+                $display("get rs1 for pc : %h, val = %h",rs_pc[i],iq_cdb_value_in);
                 rs_rs1_is_renamed[i] <= `False;
                 rs_rs1_val[i] <= iq_cdb_value_in;
               end
               if (rs_rs2_is_renamed[i] && rs_rs2_rename[i] == iq_cdb_idx_in) begin
+                $display("get rs2 for pc : %h, val = %h",rs_pc[i],iq_cdb_value_in);
                 rs_rs2_is_renamed[i] <= `False;
                 rs_rs2_val[i] <= iq_cdb_value_in;
               end
             end
         end
         if (iq_commit_reg_enable_in) begin
+          for (i = 0;i < `RegLen; i = i + 1) begin
+            $display("%h : %h",i,reg_val[i]);
+          end
           reg_val[iq_commit_reg_idx_in] <= iq_commit_reg_value_in;
+              $display("tmp_iq_result_avl[%h] set false by pc : %h",iq_commit_reg_rename_in);
+          tmp_iq_result_avl[iq_commit_reg_rename_in] <= `False;
           if (reg_is_rename[iq_commit_reg_idx_in] && reg_rename[iq_commit_reg_idx_in] == iq_commit_reg_rename_in) begin
             reg_is_rename[iq_commit_reg_idx_in] <= `False;
           end
@@ -176,6 +191,9 @@ module rs (
           rs_ls_cnt <= 0;
           for (i = 0;i < `RsLen;i = i + 1) begin
             rs_avl[i] <= `False;
+          end
+          for (i = 0;i < `IqLen;i = i + 1) begin
+            tmp_iq_result_avl[i] <= `False;
           end
           for (i = 0;i < `RegLen;i = i + 1) begin
             reg_is_rename[i] <= `False;
@@ -203,24 +221,42 @@ module rs (
                 rs_ls_cnt <= rs_ls_cnt + 1;
               end
               rs_avl[i] <= `True;
+              tmp_iq_result_avl[iq_instr1_idx_in] <= `False;
+              $display("tmp_iq_result_avl[%h] set false by pc : %h",iq_instr1_idx_in,iq_instr1_instr_pc_in);
               rs_instr_opcode[i] <= iq_instr1_instr_optype_in;
               if (iq_instr1_instr_rd_in) begin
                 reg_is_rename[iq_instr1_instr_rd_in] <= `True;
                 reg_rename[iq_instr1_instr_rd_in] <= iq_instr1_idx_in;
               end
               if (reg_is_rename[iq_instr1_instr_rs1_in]) begin
-                rs_rs1_is_renamed[i] <= `True;
-                rs_rs1_rename[i] <= reg_rename[iq_instr1_instr_rs1_in];
+                if (tmp_iq_result_avl[reg_rename[iq_instr1_instr_rs1_in]]) begin
+                  $display("get tmp result, pc = %h ,rs1 = %h , reg_addr = %h , pos_in_iq = %h",iq_instr1_instr_pc_in,tmp_iq_result[reg_rename[iq_instr1_instr_rs1_in]],iq_instr1_instr_rs1_in,reg_rename[iq_instr1_instr_rs1_in]);
+                  rs_rs1_is_renamed[i] <= `False;
+                  rs_rs1_val[i] <= tmp_iq_result[reg_rename[iq_instr1_instr_rs1_in]];
+                end
+                else begin
+                  rs_rs1_is_renamed[i] <= `True;
+                  rs_rs1_rename[i] <= reg_rename[iq_instr1_instr_rs1_in];
+                end
               end
               else begin
+                  $display("get real result, pc = %h ,rs1 = %h , reg_addr = %h",iq_instr1_instr_pc_in,reg_val[iq_instr1_instr_rs1_in],iq_instr1_instr_rs1_in);
                 rs_rs1_is_renamed[i] <= `False;
                 rs_rs1_val[i] <= reg_val[iq_instr1_instr_rs1_in];
               end
               if (reg_is_rename[iq_instr1_instr_rs2_in]) begin
-                rs_rs2_is_renamed[i] <= `True;
-                rs_rs2_rename[i] <= reg_rename[iq_instr1_instr_rs1_in];
+                if (tmp_iq_result_avl[reg_rename[iq_instr1_instr_rs2_in]]) begin
+                  $display("get tmp result, pc = %h ,rs2 = %h , reg_addr = %h , pos_in_iq = %h",iq_instr1_instr_pc_in,tmp_iq_result[reg_rename[iq_instr1_instr_rs2_in]],iq_instr1_instr_rs2_in,reg_rename[iq_instr1_instr_rs2_in]);
+                  rs_rs2_is_renamed[i] <= `False;
+                  rs_rs2_val[i] <= tmp_iq_result[reg_rename[iq_instr1_instr_rs2_in]];
+                end
+                else begin
+                  rs_rs2_is_renamed[i] <= `True;
+                  rs_rs2_rename[i] <= reg_rename[iq_instr1_instr_rs2_in];
+                end
               end
               else begin
+                  $display("get real result, pc = %h ,rs2 = %h , reg_addr = %h",iq_instr1_instr_pc_in,reg_val[iq_instr1_instr_rs2_in],iq_instr1_instr_rs2_in);
                 rs_rs2_is_renamed[i] <= `False;
                 rs_rs2_val[i] <= reg_val[iq_instr1_instr_rs2_in];
               end
@@ -243,13 +279,13 @@ module rs (
           if (rs_size) begin
             break_flag = 0;
             for (i = 0;i < `RsLen && !break_flag;i = i + 1) begin
-              if (rs_avl[i] ) begin
-                // if (rs_rs1_is_renamed[i]) $display("rs1 : %d", rs_rs1_rename[i]);
-                // if (rs_rs2_is_renamed[i]) $display("rs2 : %d", rs_rs2_rename[i]);
-              end
+              // if (rs_avl[i] ) begin
+              //   if (rs_rs1_is_renamed[i]) $display("%h : rs1 : %d", rs_pc[i], rs_rs1_rename[i]);
+              //   if (rs_rs2_is_renamed[i]) $display("%h : rs2 : %d", rs_pc[i], rs_rs2_rename[i]);
+              // end
               if (rs_avl[i] && (!rs_rs1_is_renamed[i] && !rs_rs2_is_renamed[i])) begin
                 if (rs_instr_opcode[i] == `Opcode_JAL) begin
-                  $display("%h", rs_pc[i]);
+                  // $display("rs dealing : %h", rs_pc[i]);
                   rs_avl[i] <= `False;
                   rs_size <= rs_size - 1;
                   iq_write_enable_out <= `True;
@@ -257,7 +293,7 @@ module rs (
                   iq_write_ready_enable_out <= `True;
                   iq_write_ready_out <= `True;
                   iq_write_result_enable_out <= `True;
-                  iq_write_result_out <= rs_pc[i];
+                  iq_write_result_out <= rs_pc[i] + 4;
                   iq_write_need_cdb_enable_out <= `True;
                   iq_write_need_cdb_out <= `True;
                   break_flag = 1;
@@ -267,7 +303,7 @@ module rs (
                   if (!lb_full_in && (iq_have_store_out || (iq_head_out <= iq_first_store_idx_out ?
                                       (iq_head_out <= rs_order[i] && rs_order[i] < iq_first_store_idx_out) :
                                       (iq_head_out <= rs_order[i] || rs_order[i] < iq_first_store_idx_out) ))) begin
-                    $display("%h", rs_pc[i]);
+                    // $display("rs dealing : %h", rs_pc[i]);
                     rs_avl[i] <= `False;
                     rs_size <= rs_size - 1;
                     rs_ls_cnt <= rs_ls_cnt - 1;
@@ -279,7 +315,7 @@ module rs (
                   end
                 end
                 else if (rs_instr_opcode[i] == `Opcode_StoreMem) begin
-                  $display("%h", rs_pc[i]);
+                  // $display("rs dealing : %h", rs_pc[i]);
                   rs_avl[i] <= `False;
                   rs_size <= rs_size - 1;
                   rs_ls_cnt <= rs_ls_cnt - 1;
@@ -295,7 +331,7 @@ module rs (
                 end
                 else if (rs_instr_opcode[i] == `Opcode_Calc) begin
                   if (!alu_full_in) begin
-                    $display("%h", rs_pc[i]);
+                    // $display("rs dealing : %h", rs_pc[i]);
                     rs_avl[i] <= `False;
                     rs_size <= rs_size - 1;
                     alu_calc_enable_out <= `True;
@@ -325,7 +361,7 @@ module rs (
                 end
                 else if (rs_instr_opcode[i] == `Opcode_CalcI) begin
                   if (!alu_full_in) begin
-                    $display("%h", rs_pc[i]);
+                    // $display("rs dealing : %h", rs_pc[i]);
                     rs_avl[i] <= `False;
                     rs_size <= rs_size - 1;
                     alu_calc_enable_out <= `True;
@@ -349,8 +385,30 @@ module rs (
                       alu_rhs_out <= rs_imm[i][4: 0];
                   end
                 end
+                else if (rs_instr_opcode[i] == `Opcode_BControl) begin
+                  if (!alu_full_in) begin
+                    // $display("rs dealing : %h", rs_pc[i]);
+                    rs_avl[i] <= `False;
+                    rs_size <= rs_size - 1;
+                    alu_calc_enable_out <= `True;
+                    alu_pos_in_iq_out <= rs_order[i];
+                    break_flag = 1;
+                    if (rs_instr_func3[i] & 4)
+                      alu_calc_code_out <= rs_instr_func3[i] + 8;
+                    else
+                      alu_calc_code_out <= rs_instr_func3[i] + 10;
+                    if (rs_instr_func3[i] & 4)
+                     $display("bc(%h) : %h",rs_pc[i],rs_instr_func3[i] + 8);
+                    else
+                      $display("bc(%h) : %h",rs_pc[i],rs_instr_func3[i] + 10);
+                      $display("lhs : %h",rs_rs1_val[i]);
+                      $display("rhs : %h",rs_rs2_val[i]);
+                    alu_lhs_out <= rs_rs1_val[i];
+                    alu_rhs_out <= rs_rs2_val[i];
+                  end
+                end
                 else if (rs_instr_opcode[i] == `Opcode_LUI) begin
-                  $display("%h", rs_pc[i]);
+                  // $display("rs dealing : %h", rs_pc[i]);
                   rs_avl[i] <= `False;
                   rs_size <= rs_size - 1;
                   iq_write_enable_out <= `True;
@@ -364,7 +422,7 @@ module rs (
                   break_flag = 1;
                 end
                 else if (rs_instr_opcode[i] == `Opcode_AUIPC) begin
-                  $display("%h", rs_pc[i]);
+                  // $display("rs dealing : %h", rs_pc[i]);
                   rs_avl[i] <= `False;
                   rs_size <= rs_size - 1;
                   iq_write_enable_out <= `True;
@@ -378,7 +436,7 @@ module rs (
                   break_flag = 1;
                 end
                 else if (rs_instr_opcode[i] == `Opcode_JALR) begin
-                  $display("%h", rs_pc[i]);
+                  // $display("rs dealing : %h", rs_pc[i]);
                   rs_avl[i] <= `False;
                   rs_size <= rs_size - 1;
                   iq_write_enable_out <= `True;

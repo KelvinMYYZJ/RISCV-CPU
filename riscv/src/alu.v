@@ -48,6 +48,7 @@ module alu (
         if (rs_calc_enable_in) begin
           have_result <= `True;
           pos_in_iq <= rs_pos_in_iq_in;
+          $display("calc : op =  %h, lhs = %h, rsh = %h", rs_calc_code_in, rs_lhs_in, rs_rhs_in);
           case (rs_calc_code_in)
             0: result <= rs_lhs_in + rs_rhs_in;
             1: result <= rs_lhs_in - rs_rhs_in;
@@ -78,8 +79,12 @@ module alu (
           iq_write_result_out <= result;
           iq_write_ready_enable_out <= `True;
           iq_write_ready_out <= `True;
-          iq_write_need_cdb_enable_out <= `True;
-          iq_write_need_cdb_out <= `True;
+          if (rs_calc_code_in < 10) begin
+            iq_write_need_cdb_enable_out <= `True;
+            iq_write_need_cdb_out <= `True;
+          end
+          else
+            iq_write_need_cdb_enable_out <= `False;
         end
       end
     end

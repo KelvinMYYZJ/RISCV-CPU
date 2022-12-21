@@ -53,7 +53,7 @@ module mem_ctrl (
     if (rst == `True) begin
       chip_enable <= `False;
       // ram_enable <= `False;
-      ram_addr_out <= `MaxWord;
+      // ram_addr_out <= `MaxWord;
       ram_rw_select_out <= 0;
       stat <= idle;
     end
@@ -66,7 +66,7 @@ module mem_ctrl (
     if (chip_enable) begin
       if (clear_flag_in) begin
         stat <= idle;
-        ram_addr_out <= `MaxWord;
+        ram_rw_select_out <= 0;
         iq_pending <= `False;
         if_pending <= `False;
         lb_pending <= `False;
@@ -116,7 +116,7 @@ module mem_ctrl (
           endcase
           if (ram_io_stat - 1 == 3) begin
             // ram_enable <= `False;
-            ram_addr_out <= `MaxWord;
+            // ram_addr_out <= `MaxWord;
             stat <= idle;
             if_result_enable_out <= `True;
           end
@@ -133,7 +133,7 @@ module mem_ctrl (
           endcase
           if (ram_io_stat - 1 == lb_len_in) begin
             // ram_enable <= `False;
-            ram_addr_out <= `MaxWord;
+            // ram_addr_out <= `MaxWord;
             stat <= idle;
             lb_result_enable_out <= `True; 
           end
@@ -150,7 +150,7 @@ module mem_ctrl (
           if (ram_io_stat == iq_len_in) begin
             // ram_enable <= `False;
               ram_rw_select_out <= 0;
-            ram_addr_out <= `MaxWord;
+            // ram_addr_out <= `MaxWord;
             stat <= idle;
             iq_result_enable_out <= `True;
           end

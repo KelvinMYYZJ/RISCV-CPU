@@ -155,16 +155,16 @@ module rs (
         if (iq_cdb_enable_in) begin
           tmp_iq_result[iq_cdb_idx_in] <= iq_cdb_value_in;
           tmp_iq_result_avl[iq_cdb_idx_in] <= `True;
-          $display("tmp_iq_result_avl[%h] set true",iq_cdb_idx_in);
+          // $display("tmp_iq_result_avl[%h] set true",iq_cdb_idx_in);
           for (i = 0;i < `RsLen; i = i + 1)
             if (rs_avl[i]) begin
               if (rs_rs1_is_renamed[i] && rs_rs1_rename[i] == iq_cdb_idx_in) begin
-                $display("get rs1 for pc : %h, val = %h",rs_pc[i],iq_cdb_value_in);
+                // $display("get rs1 for pc : %h, val = %h",rs_pc[i],iq_cdb_value_in);
                 rs_rs1_is_renamed[i] <= `False;
                 rs_rs1_val[i] <= iq_cdb_value_in;
               end
               if (rs_rs2_is_renamed[i] && rs_rs2_rename[i] == iq_cdb_idx_in) begin
-                $display("get rs2 for pc : %h, val = %h",rs_pc[i],iq_cdb_value_in);
+                // $display("get rs2 for pc : %h, val = %h",rs_pc[i],iq_cdb_value_in);
                 rs_rs2_is_renamed[i] <= `False;
                 rs_rs2_val[i] <= iq_cdb_value_in;
               end
@@ -172,10 +172,10 @@ module rs (
         end
         if (iq_commit_reg_enable_in) begin
           for (i = 0;i < `RegLen; i = i + 1) begin
-            $display("%h : %h",i,reg_val[i]);
+            // $display("%h : %h",i,reg_val[i]);
           end
           reg_val[iq_commit_reg_idx_in] <= iq_commit_reg_value_in;
-              $display("tmp_iq_result_avl[%h] set false by pc : %h",iq_commit_reg_rename_in);
+              // $display("tmp_iq_result_avl[%h] set false by pc : %h",iq_commit_reg_rename_in);
           tmp_iq_result_avl[iq_commit_reg_rename_in] <= `False;
           if (reg_is_rename[iq_commit_reg_idx_in] && reg_rename[iq_commit_reg_idx_in] == iq_commit_reg_rename_in) begin
             reg_is_rename[iq_commit_reg_idx_in] <= `False;
@@ -222,7 +222,7 @@ module rs (
               end
               rs_avl[i] <= `True;
               tmp_iq_result_avl[iq_instr1_idx_in] <= `False;
-              $display("tmp_iq_result_avl[%h] set false by pc : %h",iq_instr1_idx_in,iq_instr1_instr_pc_in);
+              // $display("tmp_iq_result_avl[%h] set false by pc : %h",iq_instr1_idx_in,iq_instr1_instr_pc_in);
               rs_instr_opcode[i] <= iq_instr1_instr_optype_in;
               if (iq_instr1_instr_rd_in) begin
                 reg_is_rename[iq_instr1_instr_rd_in] <= `True;
@@ -230,7 +230,7 @@ module rs (
               end
               if (reg_is_rename[iq_instr1_instr_rs1_in]) begin
                 if (tmp_iq_result_avl[reg_rename[iq_instr1_instr_rs1_in]]) begin
-                  $display("get tmp result, pc = %h ,rs1 = %h , reg_addr = %h , pos_in_iq = %h",iq_instr1_instr_pc_in,tmp_iq_result[reg_rename[iq_instr1_instr_rs1_in]],iq_instr1_instr_rs1_in,reg_rename[iq_instr1_instr_rs1_in]);
+                  // $display("get tmp result, pc = %h ,rs1 = %h , reg_addr = %h , pos_in_iq = %h",iq_instr1_instr_pc_in,tmp_iq_result[reg_rename[iq_instr1_instr_rs1_in]],iq_instr1_instr_rs1_in,reg_rename[iq_instr1_instr_rs1_in]);
                   rs_rs1_is_renamed[i] <= `False;
                   rs_rs1_val[i] <= tmp_iq_result[reg_rename[iq_instr1_instr_rs1_in]];
                 end
@@ -240,13 +240,13 @@ module rs (
                 end
               end
               else begin
-                  $display("get real result, pc = %h ,rs1 = %h , reg_addr = %h",iq_instr1_instr_pc_in,reg_val[iq_instr1_instr_rs1_in],iq_instr1_instr_rs1_in);
+                  // $display("get real result, pc = %h ,rs1 = %h , reg_addr = %h",iq_instr1_instr_pc_in,reg_val[iq_instr1_instr_rs1_in],iq_instr1_instr_rs1_in);
                 rs_rs1_is_renamed[i] <= `False;
                 rs_rs1_val[i] <= reg_val[iq_instr1_instr_rs1_in];
               end
               if (reg_is_rename[iq_instr1_instr_rs2_in]) begin
                 if (tmp_iq_result_avl[reg_rename[iq_instr1_instr_rs2_in]]) begin
-                  $display("get tmp result, pc = %h ,rs2 = %h , reg_addr = %h , pos_in_iq = %h",iq_instr1_instr_pc_in,tmp_iq_result[reg_rename[iq_instr1_instr_rs2_in]],iq_instr1_instr_rs2_in,reg_rename[iq_instr1_instr_rs2_in]);
+                  // $display("get tmp result, pc = %h ,rs2 = %h , reg_addr = %h , pos_in_iq = %h",iq_instr1_instr_pc_in,tmp_iq_result[reg_rename[iq_instr1_instr_rs2_in]],iq_instr1_instr_rs2_in,reg_rename[iq_instr1_instr_rs2_in]);
                   rs_rs2_is_renamed[i] <= `False;
                   rs_rs2_val[i] <= tmp_iq_result[reg_rename[iq_instr1_instr_rs2_in]];
                 end
@@ -256,7 +256,7 @@ module rs (
                 end
               end
               else begin
-                  $display("get real result, pc = %h ,rs2 = %h , reg_addr = %h",iq_instr1_instr_pc_in,reg_val[iq_instr1_instr_rs2_in],iq_instr1_instr_rs2_in);
+                  // $display("get real result, pc = %h ,rs2 = %h , reg_addr = %h",iq_instr1_instr_pc_in,reg_val[iq_instr1_instr_rs2_in],iq_instr1_instr_rs2_in);
                 rs_rs2_is_renamed[i] <= `False;
                 rs_rs2_val[i] <= reg_val[iq_instr1_instr_rs2_in];
               end
@@ -397,12 +397,12 @@ module rs (
                       alu_calc_code_out <= rs_instr_func3[i] + 8;
                     else
                       alu_calc_code_out <= rs_instr_func3[i] + 10;
-                    if (rs_instr_func3[i] & 4)
-                     $display("bc(%h) : %h",rs_pc[i],rs_instr_func3[i] + 8);
-                    else
-                      $display("bc(%h) : %h",rs_pc[i],rs_instr_func3[i] + 10);
-                      $display("lhs : %h",rs_rs1_val[i]);
-                      $display("rhs : %h",rs_rs2_val[i]);
+                    // if (rs_instr_func3[i] & 4)
+                    //  $display("bc(%h) : %h",rs_pc[i],rs_instr_func3[i] + 8);
+                    // else
+                    //   $display("bc(%h) : %h",rs_pc[i],rs_instr_func3[i] + 10);
+                    //   $display("lhs : %h",rs_rs1_val[i]);
+                    //   $display("rhs : %h",rs_rs2_val[i]);
                     alu_lhs_out <= rs_rs1_val[i];
                     alu_rhs_out <= rs_rs2_val[i];
                   end

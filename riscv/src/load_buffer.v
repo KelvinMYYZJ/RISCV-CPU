@@ -94,7 +94,7 @@ module load_buffer(
           3 : iq_write_result_out <= mc_data_in;
         endcase
         // iq_write_result_out <= result;
-        $display("load success!, result : %h", mc_data_in);
+        // $display("load success!, result : %h", mc_data_in);
         iq_write_ready_enable_out <= `True;
         iq_write_ready_out <= `True;
         iq_write_need_cdb_enable_out <= `True;

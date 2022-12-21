@@ -48,7 +48,7 @@ module alu (
         if (rs_calc_enable_in) begin
           have_result <= `True;
           pos_in_iq <= rs_pos_in_iq_in;
-          $display("calc : op =  %h, lhs = %h, rsh = %h", rs_calc_code_in, rs_lhs_in, rs_rhs_in);
+          // $display("calc : op =  %h, lhs = %h, rsh = %h", rs_calc_code_in, rs_lhs_in, rs_rhs_in);
           case (rs_calc_code_in)
             0: result <= rs_lhs_in + rs_rhs_in;
             1: result <= rs_lhs_in - rs_rhs_in;

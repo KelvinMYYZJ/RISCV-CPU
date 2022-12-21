@@ -85,6 +85,7 @@ module mem_ctrl (
               stat <= deal_iq;
               ram_io_stat <= 0;
               ram_addr_out <= iq_addr_in;
+              ram_data_out <= iq_data_in[7 : 0];
               ram_rw_select_out <= 1;
             end
             else if (if_fetch_enable_in || if_pending) begin
@@ -134,7 +135,7 @@ module mem_ctrl (
             // ram_enable <= `False;
             ram_addr_out <= `MaxWord;
             stat <= idle;
-            lb_result_enable_out <= `True;
+            lb_result_enable_out <= `True; 
           end
         end
 
@@ -142,13 +143,13 @@ module mem_ctrl (
           ram_io_stat <= ram_io_stat + 1;
           ram_addr_out <= ram_addr_out + 1;
           case (ram_io_stat)
-            1: ram_data_out <= iq_data_in[7 : 0];
-            2: ram_data_out <= iq_data_in[15 : 8];
-            3: ram_data_out <= iq_data_in[23 : 16];
-            4: ram_data_out <= iq_data_in[31 : 24];
+            0: ram_data_out <= iq_data_in[15 : 8];
+            1: ram_data_out <= iq_data_in[23 : 16];
+            2: ram_data_out <= iq_data_in[31 : 24];
           endcase
-          if (ram_io_stat - 1 == iq_len_in) begin
+          if (ram_io_stat == iq_len_in) begin
             // ram_enable <= `False;
+              ram_rw_select_out <= 0;
             ram_addr_out <= `MaxWord;
             stat <= idle;
             iq_result_enable_out <= `True;

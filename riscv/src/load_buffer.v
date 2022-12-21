@@ -58,7 +58,6 @@ module load_buffer(
   always @ (posedge clk) begin
     if (chip_enable) begin
       if (!update_stat) begin
-        iq_write_enable_out <= `False;
         if (clear_flag_in) begin
           load_stat <= DataLoadStatIdle;
         end
@@ -70,6 +69,7 @@ module load_buffer(
         iq_write_enable_out <= `False;
         mc_fetch_enable_out <= `False;
         if (load_stat == DataLoadStatIdle && rs_load_enable_in) begin
+          load_stat <= DataLoadStatLoading;
           rs_full_out <= `True;
           mc_fetch_enable_out <= `True;
           mc_addr_out <= rs_addr_in;
@@ -94,6 +94,7 @@ module load_buffer(
           3 : iq_write_result_out <= mc_data_in;
         endcase
         // iq_write_result_out <= result;
+        $display("load success!, result : %h", mc_data_in);
         iq_write_ready_enable_out <= `True;
         iq_write_ready_out <= `True;
         iq_write_need_cdb_enable_out <= `True;

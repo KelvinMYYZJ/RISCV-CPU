@@ -279,10 +279,10 @@ module rs (
           if (rs_size) begin
             break_flag = 0;
             for (i = 0;i < `RsLen && !break_flag;i = i + 1) begin
-              // if (rs_avl[i] ) begin
-              //   if (rs_rs1_is_renamed[i]) $display("%h : rs1 : %d", rs_pc[i], rs_rs1_rename[i]);
-              //   if (rs_rs2_is_renamed[i]) $display("%h : rs2 : %d", rs_pc[i], rs_rs2_rename[i]);
-              // end
+              if (rs_avl[i] && rs_instr_opcode[i] == `Opcode_LoadMem) begin
+                if (rs_rs1_is_renamed[i]) $display("instr %h stuck : rs1 : %d", rs_pc[i], rs_rs1_rename[i]);
+                if (rs_rs2_is_renamed[i]) $display("instr %h stuck : rs2 : %d", rs_pc[i], rs_rs2_rename[i]);
+              end
               if (rs_avl[i] && (!rs_rs1_is_renamed[i] && !rs_rs2_is_renamed[i])) begin
                 if (rs_instr_opcode[i] == `Opcode_JAL) begin
                   // $display("rs dealing : %h", rs_pc[i]);
@@ -300,7 +300,7 @@ module rs (
                 end
                 else if (rs_instr_opcode[i] == `Opcode_LoadMem) begin
                   // TODO : more condition to limit load
-                  if (!lb_full_in && (iq_have_store_out || (iq_head_out <= iq_first_store_idx_out ?
+                  if (!lb_full_in && (!iq_have_store_out || ((iq_head_out <= iq_first_store_idx_out) ?
                                       (iq_head_out <= rs_order[i] && rs_order[i] < iq_first_store_idx_out) :
                                       (iq_head_out <= rs_order[i] || rs_order[i] < iq_first_store_idx_out) ))) begin
                     // $display("rs dealing : %h", rs_pc[i]);
@@ -308,7 +308,7 @@ module rs (
                     rs_size <= rs_size - 1;
                     rs_ls_cnt <= rs_ls_cnt - 1;
                     lb_load_enable_out <= `True;
-                    lb_addr_out <= rs_rs1_val[i];
+                    lb_addr_out <= rs_rs1_val[i] + rs_imm[i];
                     lb_func3_out <= rs_instr_func3[i];
                     lb_pos_in_iq_out <= rs_order[i];
                     break_flag = 1;

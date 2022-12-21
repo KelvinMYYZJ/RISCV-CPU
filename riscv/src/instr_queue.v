@@ -278,6 +278,7 @@ module instr_queue (
             iq_result[lb_write_idx_in] <= lb_write_result_in;
           end
           if (lb_write_need_cdb_enable_in) begin
+            $display("load instr with rd : %h",iq_instr_rd[lb_write_idx_in]);
             if (iq_instr_rd[lb_write_idx_in])
               iq_need_cdb[lb_write_idx_in] <= lb_write_need_cdb_in;
           end
@@ -288,6 +289,7 @@ module instr_queue (
         // TODO? : other write
         // TODO : find the first store instr
         iq_have_store_out <= `False;
+        break_flag = 0;
         for (i = iq_head;i != iq_tail && !break_flag;i = (i == `IqLen - 1) ? 0 : i + 1) begin
           if (iq_instr_optype[i] == `Opcode_StoreMem) begin
             break_flag = 1;
@@ -362,7 +364,7 @@ module instr_queue (
               mc_addr_out <= iq_tar_addr[iq_head];
               mc_data_out <= iq_result[iq_head];
               mc_len_out <= ((iq_instr_func3[iq_head] & 3) == 2) ? 3 : iq_instr_func3[iq_head] & 3;
-              // TODO : Contact with MemCtrl
+              $display("storing, pc = %h, addr = %h, val = %h, store type = %h",iq_instr_pc[iq_head],iq_tar_addr[iq_head],iq_result[iq_head],iq_instr_func3[iq_head] & 3);
             end
             else if (iq_instr_optype[iq_head] == `Opcode_BControl) begin
               // TODO : Contact with predictor

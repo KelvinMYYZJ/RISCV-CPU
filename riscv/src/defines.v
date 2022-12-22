@@ -1,3 +1,5 @@
+`define DEBUGFLAG 0
+`define SHOWCOMMITLAG 0
 
 `define Opcode_LoadMem 7'b0000011   //ImmType = I
 `define Opcode_StoreMem 7'b0100011  //ImmType = S
@@ -64,4 +66,3 @@
 `define RsLen 2**`IqAddrLen
 `define RsIdxRange `IqLen-1:0
 `define RsMaxLsCnt 4
-

@@ -154,6 +154,8 @@ module instr_queue (
   integer i;
   reg [`IqAddrType] iq_head;
   reg [`IqAddrType] iq_tail;
+  wire [`IqAddrType] iq_tail_dec = iq_tail - 1;
+  wire [`WordType] iq_imm_tail = iq_instr_imm[iq_tail_dec];
   reg [`IqAddrType] iq_ls_num;
   reg iq_ready [`IqIdxRange];
   reg iq_in_rs [`IqIdxRange]; // pos_in_rs != NIDX
@@ -357,14 +359,17 @@ module instr_queue (
           if (iq_head != iq_tail && iq_ready[iq_head] && !iq_need_cdb[iq_head] && instr_commit_stat == InstrCommitStatIdle) begin
             iq_head <= iq_head + 1;
             commit_cnt = commit_cnt + 1;
-            // $display("commiting, commit_cnt = %h, pc = %h", commit_cnt, iq_instr_pc[iq_head]);
+            if (`SHOWCOMMITLAG)
+              if (!(commit_cnt & 16'hFF))
+                $display("commit num : %h", commit_cnt);
+            if (`DEBUGFLAG) $display("commiting, commit_cnt = %h, pc = %h", commit_cnt, iq_instr_pc[iq_head]); // DEBUG_DISPLAY
             if (iq_instr_optype[iq_head] == `Opcode_StoreMem) begin
               mc_store_enable_out <= `True;
               instr_commit_stat <= InstrCommitStatStoring;
               mc_addr_out <= iq_tar_addr[iq_head];
               mc_data_out <= iq_result[iq_head];
               mc_len_out <= ((iq_instr_func3[iq_head] & 3) == 2) ? 3 : iq_instr_func3[iq_head] & 3;
-              // $display("storing, pc = %h, addr = %h, val = %h, store type = %h",iq_instr_pc[iq_head],iq_tar_addr[iq_head],iq_result[iq_head],iq_instr_func3[iq_head] & 3);
+              if (`DEBUGFLAG) $display("storing, pc = %h, addr = %h, val = %h, store type = %h", iq_instr_pc[iq_head], iq_tar_addr[iq_head], iq_result[iq_head], iq_instr_func3[iq_head] & 3); // DEBUG_DISPLAY
             end
             else if (iq_instr_optype[iq_head] == `Opcode_BControl) begin
               // TODO : Contact with predictor
@@ -377,7 +382,7 @@ module instr_queue (
             end
             else begin
               if (iq_instr_rd[iq_head]) begin
-                // $display("nxt_pc : %h", iq_instr_pc[iq_head]);
+                if (`DEBUGFLAG) $display("nxt_pc : %h", iq_instr_pc[iq_head]); // DEBUG_DISPLAY
                 rs_commit_reg_enable_out <= `True;
                 rs_commit_reg_idx_out <= iq_instr_rd[iq_head];
                 rs_commit_reg_value_out <= iq_result[iq_head];
@@ -436,7 +441,7 @@ module instr_queue (
             // pd_predict_enable_out <= `False;
             iq_prediction[iq_tail - 1] <= pd_prediction_in;
             if_write_pc_sig_out <= `True;
-            if_write_pc_val_out <= pd_prediction_in ? decoding_instr_pc + iq_instr_imm[iq_tail - 1] : (decoding_instr_pc + 4);
+            if_write_pc_val_out <= pd_prediction_in ? decoding_instr_pc + iq_imm_tail : (decoding_instr_pc + 4);
           end
         end
       end

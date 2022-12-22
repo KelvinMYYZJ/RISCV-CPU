@@ -171,11 +171,13 @@ module rs (
             end
         end
         if (iq_commit_reg_enable_in) begin
-          for (i = 0;i < `RegLen; i = i + 1) begin
-            // $display("%h : %h",i,reg_val[i]);
+          if (`DEBUGFLAG) begin
+            for (i = 0;i < `RegLen; i = i + 1) begin
+              $display("%h : %h", i, reg_val[i]); // DEBUG_DISPLAY
+            end
           end
           reg_val[iq_commit_reg_idx_in] <= iq_commit_reg_value_in;
-              // $display("tmp_iq_result_avl[%h] set false by pc : %h",iq_commit_reg_rename_in);
+          // $display("tmp_iq_result_avl[%h] set false by pc : %h",iq_commit_reg_rename_in);
           tmp_iq_result_avl[iq_commit_reg_rename_in] <= `False;
           if (reg_is_rename[iq_commit_reg_idx_in] && reg_rename[iq_commit_reg_idx_in] == iq_commit_reg_rename_in) begin
             reg_is_rename[iq_commit_reg_idx_in] <= `False;
@@ -240,7 +242,7 @@ module rs (
                 end
               end
               else begin
-                  // $display("get real result, pc = %h ,rs1 = %h , reg_addr = %h",iq_instr1_instr_pc_in,reg_val[iq_instr1_instr_rs1_in],iq_instr1_instr_rs1_in);
+                // $display("get real result, pc = %h ,rs1 = %h , reg_addr = %h",iq_instr1_instr_pc_in,reg_val[iq_instr1_instr_rs1_in],iq_instr1_instr_rs1_in);
                 rs_rs1_is_renamed[i] <= `False;
                 rs_rs1_val[i] <= reg_val[iq_instr1_instr_rs1_in];
               end
@@ -256,7 +258,7 @@ module rs (
                 end
               end
               else begin
-                  // $display("get real result, pc = %h ,rs2 = %h , reg_addr = %h",iq_instr1_instr_pc_in,reg_val[iq_instr1_instr_rs2_in],iq_instr1_instr_rs2_in);
+                // $display("get real result, pc = %h ,rs2 = %h , reg_addr = %h",iq_instr1_instr_pc_in,reg_val[iq_instr1_instr_rs2_in],iq_instr1_instr_rs2_in);
                 rs_rs2_is_renamed[i] <= `False;
                 rs_rs2_val[i] <= reg_val[iq_instr1_instr_rs2_in];
               end

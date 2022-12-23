@@ -56,13 +56,13 @@
 `define False 1'b0
 `define True 1'b1
 
-`define IqAddrLen 5
+`define IqAddrLen 2
 `define IqAddrType `IqAddrLen-1:0
 `define IqLen 2**`IqAddrLen
 `define IqIdxRange `IqLen-1:0
 
-`define RsAddrLen 5
-`define RsAddrType `IqAddrLen-1:0
-`define RsLen 2**`IqAddrLen
-`define RsIdxRange `IqLen-1:0
+`define RsAddrLen 2
+`define RsAddrType `RsAddrLen-1:0
+`define RsLen 2**`RsAddrLen
+`define RsIdxRange `RsLen-1:0
 `define RsMaxLsCnt 4

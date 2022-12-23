@@ -180,6 +180,10 @@ module instr_queue (
   reg pd_result_enable_in;
   reg pd_prediction_in;
   integer commit_cnt;
+  wire [`IqAddrType] idx = iq_head + i;
+  wire break_flag_final = break_flag | !((iq_head <= iq_tail) ?
+                                        (iq_head <= idx && idx < iq_tail) :
+                                        (iq_head <= idx || idx < iq_tail) );
 
 
   assign rs_commit_flag_out = iq_head != iq_tail && iq_ready[iq_head] && iq_need_cdb[iq_head];
@@ -292,42 +296,43 @@ module instr_queue (
         // TODO : find the first store instr
         iq_have_store_out <= `False;
         break_flag = 0;
-        for (i = iq_head;i != iq_tail && !break_flag;i = (i == `IqLen - 1) ? 0 : i + 1) begin
-          if (iq_instr_optype[i] == `Opcode_StoreMem) begin
-            break_flag = 1;
-            iq_first_store_idx_out <= i;
-            iq_have_store_out <= `True;
+        for (i = 0;i < `IqLen;i = i + 1) if (!break_flag_final) begin
+            if (iq_instr_optype[idx] == `Opcode_StoreMem) begin
+              break_flag = 1;
+              iq_first_store_idx_out <= idx;
+              iq_have_store_out <= `True;
+            end
           end
-        end
         break_flag = 0;
         rs_instr1_enable_out <= `False;
         rs_instr2_enable_out <= `False;
         break_flag = 0;
-        for (i = iq_head;i != iq_tail && !break_flag;i = (i == `IqLen - 1) ? 0 : i + 1) begin
-          if (!(rs_write_enable_in && rs_write_idx_in == i) && !(rs_push_result_enable_in && rs_push_idx_in == i)) begin
-            // TODO? : other write all continue
-            if (!iq_in_rs[i]) begin
-              rs_instr1_enable_out <= `True;
-              rs_instr1_idx_out <= i;
-              break_flag = 1;
-            end
-          end
-        end
-        if (i != iq_tail && (iq_instr_optype[i] == `Opcode_StoreMem || iq_instr_optype[i] == `Opcode_LoadMem)) begin
-          // instr1 is an memory access op
-          // get instr2
-          break_flag = 0;
-          for (i = iq_head;i != iq_tail && !break_flag;i = (i == `IqLen - 1) ? 0 : i + 1) begin
-            if (!(rs_write_enable_in && rs_write_idx_in == i) && !(rs_push_result_enable_in && rs_push_idx_in == i)) begin
-              // TODO : other write all continue
-              if (!iq_in_rs[i] && (iq_instr_optype[i] != `Opcode_StoreMem || iq_instr_optype[i] != `Opcode_LoadMem)) begin
-                rs_instr2_enable_out <= `True;
-                rs_instr2_idx_out <= i;
+        for (i = 0;i < `IqLen;i = i + 1) if (!break_flag_final) begin
+            if (!(rs_write_enable_in && rs_write_idx_in == i) && !(rs_push_result_enable_in && rs_push_idx_in == idx)) begin
+              // TODO? : other write all continue
+              if (!iq_in_rs[idx]) begin
+                rs_instr1_enable_out <= `True;
+                rs_instr1_idx_out <= idx;
                 break_flag = 1;
               end
             end
           end
-        end
+        // if (i != iq_tail && (iq_instr_optype[i] == `Opcode_StoreMem || iq_instr_optype[i] == `Opcode_LoadMem)) begin
+        //   // instr1 is an memory access op
+        //   // get instr2
+        //   break_flag = 0;
+        //   for (i = iq_head;i != iq_tail;i = (i == `IqLen - 1) ? 0 : i + 1) if (!break_flag_final) begin begin
+        //         if (!(rs_write_enable_in && rs_write_idx_in == i) && !(rs_push_result_enable_in && rs_push_idx_in == i)) begin
+        //           // TODO : other write all continue
+        //           if (!iq_in_rs[i] && (iq_instr_optype[i] != `Opcode_StoreMem || iq_instr_optype[i] != `Opcode_LoadMem)) begin
+        //             rs_instr2_enable_out <= `True;
+        //             rs_instr2_idx_out <= i;
+        //             break_flag = 1;
+        //           end
+        //         end
+        //       end
+        //     end
+        // end
       end
       else begin
         if_write_pc_sig_out <= `False;
@@ -344,15 +349,15 @@ module instr_queue (
         end
         else begin
           break_flag = 0;
-          for (order = iq_head;order != iq_tail && !break_flag;order = (order == `IqLen - 1) ? 0 : order + 1) begin
-            if (iq_need_cdb[order]) begin
-              iq_need_cdb[order] <= `False;
-              rs_cdb_enable_out <= `True;
-              rs_cdb_idx_out <= order;
-              rs_cdb_value_out <= iq_result[order];
-              break_flag = 1;
+          for (i = 0;i < `IqLen;i = i + 1) if (!break_flag_final) begin
+              if (iq_need_cdb[idx]) begin
+                iq_need_cdb[idx] <= `False;
+                rs_cdb_enable_out <= `True;
+                rs_cdb_idx_out <= idx;
+                rs_cdb_value_out <= iq_result[idx];
+                break_flag = 1;
+              end
             end
-          end
           if (instr_commit_stat == InstrCommitStatStoring && mc_result_enable_in) begin
             instr_commit_stat <= InstrCommitStatIdle;
           end
@@ -379,6 +384,7 @@ module instr_queue (
                 // $display("clear because wrong prediction, next pc is %h",iq_result[iq_head] ? iq_instr_pc[iq_head] + iq_instr_imm[iq_head] : iq_instr_pc[iq_head] + 4 );
                 clear_pc_out <= iq_result[iq_head] ? iq_instr_pc[iq_head] + iq_instr_imm[iq_head] : iq_instr_pc[iq_head] + 4 ;
               end
+              // else $display("correct prediction : %h",iq_prediction[iq_head]);
             end
             else begin
               if (iq_instr_rd[iq_head]) begin
@@ -439,7 +445,7 @@ module instr_queue (
           if (instr_fetch_stat == InstrFetchStatPridecting && pd_result_enable_in) begin
             instr_fetch_stat <= InstrFetchStatIdle;
             // pd_predict_enable_out <= `False;
-            iq_prediction[iq_tail - 1] <= pd_prediction_in;
+            iq_prediction[iq_tail_dec] <= pd_prediction_in;
             if_write_pc_sig_out <= `True;
             if_write_pc_val_out <= pd_prediction_in ? decoding_instr_pc + iq_imm_tail : (decoding_instr_pc + 4);
           end

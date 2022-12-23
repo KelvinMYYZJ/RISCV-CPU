@@ -117,6 +117,9 @@ module rs (
   wire rs_full = rs_size == `RsLen;
   wire rs_ls_full = rs_ls_cnt == `RsMaxLsCnt;
 
+  integer i;
+  integer avl_idx;
+  integer break_flag;
   always @ (posedge clk) begin
     if (rst) begin
       chip_enable <= `False;
@@ -147,8 +150,6 @@ module rs (
       chip_enable <= rdy;
     end
   end
-  integer i;
-  integer break_flag;
   always @ (posedge clk) begin
     if (chip_enable) begin
       if (update_stat) begin
@@ -215,7 +216,13 @@ module rs (
             if (!(rs_ls_full &&
                   (iq_instr1_instr_optype_in == `Opcode_LoadMem ||
                    iq_instr1_instr_optype_in == `Opcode_StoreMem))) begin // ls not full now
-              for (i = 0;i < `RsLen && rs_avl[i];i = i + 1);
+              break_flag = 0;
+              for (i = 0;i < `RsLen;i = i + 1)
+                if (!rs_avl[i] && !break_flag) begin
+                  avl_idx = i;
+                  break_flag = 1;
+                end
+              i = avl_idx;
               // TODO : in rs
               rs_size <= rs_size + 1;
               if (iq_instr1_instr_optype_in == `Opcode_LoadMem ||
@@ -280,181 +287,181 @@ module rs (
           // deal an instr in rs
           if (rs_size) begin
             break_flag = 0;
-            for (i = 0;i < `RsLen && !break_flag;i = i + 1) begin
-              if (rs_avl[i] && rs_instr_opcode[i] == `Opcode_LoadMem) begin
-                if (rs_rs1_is_renamed[i]) $display("instr %h stuck : rs1 : %d", rs_pc[i], rs_rs1_rename[i]);
-                if (rs_rs2_is_renamed[i]) $display("instr %h stuck : rs2 : %d", rs_pc[i], rs_rs2_rename[i]);
-              end
-              if (rs_avl[i] && (!rs_rs1_is_renamed[i] && !rs_rs2_is_renamed[i])) begin
-                if (rs_instr_opcode[i] == `Opcode_JAL) begin
-                  // $display("rs dealing : %h", rs_pc[i]);
-                  rs_avl[i] <= `False;
-                  rs_size <= rs_size - 1;
-                  iq_write_enable_out <= `True;
-                  iq_write_idx_out <= rs_order[i];
-                  iq_write_ready_enable_out <= `True;
-                  iq_write_ready_out <= `True;
-                  iq_write_result_enable_out <= `True;
-                  iq_write_result_out <= rs_pc[i] + 4;
-                  iq_write_need_cdb_enable_out <= `True;
-                  iq_write_need_cdb_out <= `True;
-                  break_flag = 1;
+            for (i = 0;i < `RsLen;i = i + 1) if (!break_flag) begin
+                if (rs_avl[i] && rs_instr_opcode[i] == `Opcode_LoadMem) begin
+                  if (rs_rs1_is_renamed[i]) $display("instr %h stuck : rs1 : %d", rs_pc[i], rs_rs1_rename[i]);
+                  if (rs_rs2_is_renamed[i]) $display("instr %h stuck : rs2 : %d", rs_pc[i], rs_rs2_rename[i]);
                 end
-                else if (rs_instr_opcode[i] == `Opcode_LoadMem) begin
-                  // TODO : more condition to limit load
-                  if (!lb_full_in && (!iq_have_store_out || ((iq_head_out <= iq_first_store_idx_out) ?
-                                      (iq_head_out <= rs_order[i] && rs_order[i] < iq_first_store_idx_out) :
-                                      (iq_head_out <= rs_order[i] || rs_order[i] < iq_first_store_idx_out) ))) begin
+                if (rs_avl[i] && (!rs_rs1_is_renamed[i] && !rs_rs2_is_renamed[i])) begin
+                  if (rs_instr_opcode[i] == `Opcode_JAL) begin
+                    // $display("rs dealing : %h", rs_pc[i]);
+                    rs_avl[i] <= `False;
+                    rs_size <= rs_size - 1;
+                    iq_write_enable_out <= `True;
+                    iq_write_idx_out <= rs_order[i];
+                    iq_write_ready_enable_out <= `True;
+                    iq_write_ready_out <= `True;
+                    iq_write_result_enable_out <= `True;
+                    iq_write_result_out <= rs_pc[i] + 4;
+                    iq_write_need_cdb_enable_out <= `True;
+                    iq_write_need_cdb_out <= `True;
+                    break_flag = 1;
+                  end
+                  else if (rs_instr_opcode[i] == `Opcode_LoadMem) begin
+                    // TODO : more condition to limit load
+                    if (!lb_full_in && (!iq_have_store_out || ((iq_head_out <= iq_first_store_idx_out) ?
+                                        (iq_head_out <= rs_order[i] && rs_order[i] < iq_first_store_idx_out) :
+                                        (iq_head_out <= rs_order[i] || rs_order[i] < iq_first_store_idx_out) ))) begin
+                      // $display("rs dealing : %h", rs_pc[i]);
+                      rs_avl[i] <= `False;
+                      rs_size <= rs_size - 1;
+                      rs_ls_cnt <= rs_ls_cnt - 1;
+                      lb_load_enable_out <= `True;
+                      lb_addr_out <= rs_rs1_val[i] + rs_imm[i];
+                      lb_func3_out <= rs_instr_func3[i];
+                      lb_pos_in_iq_out <= rs_order[i];
+                      break_flag = 1;
+                    end
+                  end
+                  else if (rs_instr_opcode[i] == `Opcode_StoreMem) begin
                     // $display("rs dealing : %h", rs_pc[i]);
                     rs_avl[i] <= `False;
                     rs_size <= rs_size - 1;
                     rs_ls_cnt <= rs_ls_cnt - 1;
-                    lb_load_enable_out <= `True;
-                    lb_addr_out <= rs_rs1_val[i] + rs_imm[i];
-                    lb_func3_out <= rs_instr_func3[i];
-                    lb_pos_in_iq_out <= rs_order[i];
+                    iq_write_enable_out <= `True;
+                    iq_write_idx_out <= rs_order[i];
+                    iq_write_ready_enable_out <= `True;
+                    iq_write_ready_out <= `True;
+                    iq_write_result_enable_out <= `True;
+                    iq_write_result_out <= rs_rs2_val[i];
+                    iq_write_tar_addr_enable_out <= `True;
+                    iq_write_tar_addr_out <= rs_rs1_val[i] + rs_imm[i];
                     break_flag = 1;
                   end
-                end
-                else if (rs_instr_opcode[i] == `Opcode_StoreMem) begin
-                  // $display("rs dealing : %h", rs_pc[i]);
-                  rs_avl[i] <= `False;
-                  rs_size <= rs_size - 1;
-                  rs_ls_cnt <= rs_ls_cnt - 1;
-                  iq_write_enable_out <= `True;
-                  iq_write_idx_out <= rs_order[i];
-                  iq_write_ready_enable_out <= `True;
-                  iq_write_ready_out <= `True;
-                  iq_write_result_enable_out <= `True;
-                  iq_write_result_out <= rs_rs2_val[i];
-                  iq_write_tar_addr_enable_out <= `True;
-                  iq_write_tar_addr_out <= rs_rs1_val[i] + rs_imm[i];
-                  break_flag = 1;
-                end
-                else if (rs_instr_opcode[i] == `Opcode_Calc) begin
-                  if (!alu_full_in) begin
-                    // $display("rs dealing : %h", rs_pc[i]);
-                    rs_avl[i] <= `False;
-                    rs_size <= rs_size - 1;
-                    alu_calc_enable_out <= `True;
-                    alu_pos_in_iq_out <= rs_order[i];
-                    break_flag = 1;
-                    if (rs_instr_func3[i] == 0) begin
-                      if (rs_instr_func7[i] == 0)
+                  else if (rs_instr_opcode[i] == `Opcode_Calc) begin
+                    if (!alu_full_in) begin
+                      // $display("rs dealing : %h", rs_pc[i]);
+                      rs_avl[i] <= `False;
+                      rs_size <= rs_size - 1;
+                      alu_calc_enable_out <= `True;
+                      alu_pos_in_iq_out <= rs_order[i];
+                      break_flag = 1;
+                      if (rs_instr_func3[i] == 0) begin
+                        if (rs_instr_func7[i] == 0)
+                          alu_calc_code_out <= `CalcCodeAdd;
+                        else  // if (rs_instr_func7[i] == 0x20)
+                          alu_calc_code_out <= `CalcCodeSub;
+                      end
+                      else if (rs_instr_func3[i] < 5)
+                        alu_calc_code_out <= rs_instr_func3[i] + 1;
+                      else if (rs_instr_func3[i] == 5) begin
+                        if (rs_instr_func7[i] == 0)
+                          alu_calc_code_out <= `CalcCodeSrl;
+                        else  // if (rs_instr_func7[i] == 0x20)
+                          alu_calc_code_out <= `CalcCodeSra;
+                      end
+                      else
+                        alu_calc_code_out <= rs_instr_func3[i] + 2;
+                      alu_lhs_out <= rs_rs1_val[i];
+                      alu_rhs_out <= rs_rs2_val[i];
+                      if (rs_instr_func3[i] == 1 || rs_instr_func3[i] == 5)
+                        alu_rhs_out <= rs_rs2_val[i][4: 0];
+                    end
+                  end
+                  else if (rs_instr_opcode[i] == `Opcode_CalcI) begin
+                    if (!alu_full_in) begin
+                      // $display("rs dealing : %h", rs_pc[i]);
+                      rs_avl[i] <= `False;
+                      rs_size <= rs_size - 1;
+                      alu_calc_enable_out <= `True;
+                      alu_pos_in_iq_out <= rs_order[i];
+                      break_flag = 1;
+                      if (rs_instr_func3[i] == 0)
                         alu_calc_code_out <= `CalcCodeAdd;
-                      else  // if (rs_instr_func7[i] == 0x20)
-                        alu_calc_code_out <= `CalcCodeSub;
+                      else if (rs_instr_func3[i] < 5)
+                        alu_calc_code_out <= rs_instr_func3[i] + 1;
+                      else if (rs_instr_func3[i] == 5) begin
+                        if (rs_instr_func7[i] == 0)
+                          alu_calc_code_out <= `CalcCodeSrl;
+                        else  // if (rs_instr_func7[i] == 0x20)
+                          alu_calc_code_out <= `CalcCodeSra;
+                      end
+                      else
+                        alu_calc_code_out <= rs_instr_func3[i] + 2;
+                      alu_lhs_out <= rs_rs1_val[i];
+                      alu_rhs_out <= rs_imm[i];
+                      if (rs_instr_func3[i] == 1 || rs_instr_func3[i] == 5)
+                        alu_rhs_out <= rs_imm[i][4: 0];
                     end
-                    else if (rs_instr_func3[i] < 5)
-                      alu_calc_code_out <= rs_instr_func3[i] + 1;
-                    else if (rs_instr_func3[i] == 5) begin
-                      if (rs_instr_func7[i] == 0)
-                        alu_calc_code_out <= `CalcCodeSrl;
-                      else  // if (rs_instr_func7[i] == 0x20)
-                        alu_calc_code_out <= `CalcCodeSra;
-                    end
-                    else
-                      alu_calc_code_out <= rs_instr_func3[i] + 2;
-                    alu_lhs_out <= rs_rs1_val[i];
-                    alu_rhs_out <= rs_rs2_val[i];
-                    if (rs_instr_func3[i] == 1 || rs_instr_func3[i] == 5)
-                      alu_rhs_out <= rs_rs2_val[i][4: 0];
                   end
-                end
-                else if (rs_instr_opcode[i] == `Opcode_CalcI) begin
-                  if (!alu_full_in) begin
+                  else if (rs_instr_opcode[i] == `Opcode_BControl) begin
+                    if (!alu_full_in) begin
+                      // $display("rs dealing : %h", rs_pc[i]);
+                      rs_avl[i] <= `False;
+                      rs_size <= rs_size - 1;
+                      alu_calc_enable_out <= `True;
+                      alu_pos_in_iq_out <= rs_order[i];
+                      break_flag = 1;
+                      if (rs_instr_func3[i] & 4)
+                        alu_calc_code_out <= rs_instr_func3[i] + 8;
+                      else
+                        alu_calc_code_out <= rs_instr_func3[i] + 10;
+                      // if (rs_instr_func3[i] & 4)
+                      //  $display("bc(%h) : %h",rs_pc[i],rs_instr_func3[i] + 8);
+                      // else
+                      //   $display("bc(%h) : %h",rs_pc[i],rs_instr_func3[i] + 10);
+                      //   $display("lhs : %h",rs_rs1_val[i]);
+                      //   $display("rhs : %h",rs_rs2_val[i]);
+                      alu_lhs_out <= rs_rs1_val[i];
+                      alu_rhs_out <= rs_rs2_val[i];
+                    end
+                  end
+                  else if (rs_instr_opcode[i] == `Opcode_LUI) begin
                     // $display("rs dealing : %h", rs_pc[i]);
                     rs_avl[i] <= `False;
                     rs_size <= rs_size - 1;
-                    alu_calc_enable_out <= `True;
-                    alu_pos_in_iq_out <= rs_order[i];
+                    iq_write_enable_out <= `True;
+                    iq_write_idx_out <= rs_order[i];
+                    iq_write_ready_enable_out <= `True;
+                    iq_write_ready_out <= `True;
+                    iq_write_result_enable_out <= `True;
+                    iq_write_result_out <= rs_imm[i];
+                    iq_write_need_cdb_enable_out <= `True;
+                    iq_write_need_cdb_out <= `True;
                     break_flag = 1;
-                    if (rs_instr_func3[i] == 0)
-                      alu_calc_code_out <= `CalcCodeAdd;
-                    else if (rs_instr_func3[i] < 5)
-                      alu_calc_code_out <= rs_instr_func3[i] + 1;
-                    else if (rs_instr_func3[i] == 5) begin
-                      if (rs_instr_func7[i] == 0)
-                        alu_calc_code_out <= `CalcCodeSrl;
-                      else  // if (rs_instr_func7[i] == 0x20)
-                        alu_calc_code_out <= `CalcCodeSra;
-                    end
-                    else
-                      alu_calc_code_out <= rs_instr_func3[i] + 2;
-                    alu_lhs_out <= rs_rs1_val[i];
-                    alu_rhs_out <= rs_imm[i];
-                    if (rs_instr_func3[i] == 1 || rs_instr_func3[i] == 5)
-                      alu_rhs_out <= rs_imm[i][4: 0];
                   end
-                end
-                else if (rs_instr_opcode[i] == `Opcode_BControl) begin
-                  if (!alu_full_in) begin
+                  else if (rs_instr_opcode[i] == `Opcode_AUIPC) begin
                     // $display("rs dealing : %h", rs_pc[i]);
                     rs_avl[i] <= `False;
                     rs_size <= rs_size - 1;
-                    alu_calc_enable_out <= `True;
-                    alu_pos_in_iq_out <= rs_order[i];
+                    iq_write_enable_out <= `True;
+                    iq_write_idx_out <= rs_order[i];
+                    iq_write_ready_enable_out <= `True;
+                    iq_write_ready_out <= `True;
+                    iq_write_result_enable_out <= `True;
+                    iq_write_result_out <= rs_pc[i] + rs_imm[i];
+                    iq_write_need_cdb_enable_out <= `True;
+                    iq_write_need_cdb_out <= `True;
                     break_flag = 1;
-                    if (rs_instr_func3[i] & 4)
-                      alu_calc_code_out <= rs_instr_func3[i] + 8;
-                    else
-                      alu_calc_code_out <= rs_instr_func3[i] + 10;
-                    // if (rs_instr_func3[i] & 4)
-                    //  $display("bc(%h) : %h",rs_pc[i],rs_instr_func3[i] + 8);
-                    // else
-                    //   $display("bc(%h) : %h",rs_pc[i],rs_instr_func3[i] + 10);
-                    //   $display("lhs : %h",rs_rs1_val[i]);
-                    //   $display("rhs : %h",rs_rs2_val[i]);
-                    alu_lhs_out <= rs_rs1_val[i];
-                    alu_rhs_out <= rs_rs2_val[i];
                   end
-                end
-                else if (rs_instr_opcode[i] == `Opcode_LUI) begin
-                  // $display("rs dealing : %h", rs_pc[i]);
-                  rs_avl[i] <= `False;
-                  rs_size <= rs_size - 1;
-                  iq_write_enable_out <= `True;
-                  iq_write_idx_out <= rs_order[i];
-                  iq_write_ready_enable_out <= `True;
-                  iq_write_ready_out <= `True;
-                  iq_write_result_enable_out <= `True;
-                  iq_write_result_out <= rs_imm[i];
-                  iq_write_need_cdb_enable_out <= `True;
-                  iq_write_need_cdb_out <= `True;
-                  break_flag = 1;
-                end
-                else if (rs_instr_opcode[i] == `Opcode_AUIPC) begin
-                  // $display("rs dealing : %h", rs_pc[i]);
-                  rs_avl[i] <= `False;
-                  rs_size <= rs_size - 1;
-                  iq_write_enable_out <= `True;
-                  iq_write_idx_out <= rs_order[i];
-                  iq_write_ready_enable_out <= `True;
-                  iq_write_ready_out <= `True;
-                  iq_write_result_enable_out <= `True;
-                  iq_write_result_out <= rs_pc[i] + rs_imm[i];
-                  iq_write_need_cdb_enable_out <= `True;
-                  iq_write_need_cdb_out <= `True;
-                  break_flag = 1;
-                end
-                else if (rs_instr_opcode[i] == `Opcode_JALR) begin
-                  // $display("rs dealing : %h", rs_pc[i]);
-                  rs_avl[i] <= `False;
-                  rs_size <= rs_size - 1;
-                  iq_write_enable_out <= `True;
-                  iq_write_idx_out <= rs_order[i];
-                  iq_write_ready_enable_out <= `True;
-                  iq_write_ready_out <= `True;
-                  iq_write_result_enable_out <= `True;
-                  iq_write_result_out <= rs_pc[i] + 4;
-                  iq_write_tar_addr_enable_out <= `True;
-                  iq_write_tar_addr_out <= (rs_imm[i] + rs_rs1_val[i]) & 32'hFFFFFFFE;
-                  iq_write_need_cdb_enable_out <= `True;
-                  iq_write_need_cdb_out <= `True;
-                  break_flag = 1;
+                  else if (rs_instr_opcode[i] == `Opcode_JALR) begin
+                    // $display("rs dealing : %h", rs_pc[i]);
+                    rs_avl[i] <= `False;
+                    rs_size <= rs_size - 1;
+                    iq_write_enable_out <= `True;
+                    iq_write_idx_out <= rs_order[i];
+                    iq_write_ready_enable_out <= `True;
+                    iq_write_ready_out <= `True;
+                    iq_write_result_enable_out <= `True;
+                    iq_write_result_out <= rs_pc[i] + 4;
+                    iq_write_tar_addr_enable_out <= `True;
+                    iq_write_tar_addr_out <= (rs_imm[i] + rs_rs1_val[i]) & 32'hFFFFFFFE;
+                    iq_write_need_cdb_enable_out <= `True;
+                    iq_write_need_cdb_out <= `True;
+                    break_flag = 1;
+                  end
                 end
               end
-            end
           end
         end
       end

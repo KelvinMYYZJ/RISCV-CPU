@@ -22,7 +22,23 @@ module cpu(
     input wire io_buffer_full,
 
     // cpu register output (debugging demo)
-    output wire [31: 0]	dbgreg_dout
+    output wire [31: 0]	dbgreg_dout,
+
+    output wire led1,
+    output wire led2,
+    output wire led3,
+    output wire led4,
+    output wire led5,
+    output wire led6,
+    output wire led7,
+    output wire led8,
+    output wire led9,
+    output wire led10,
+    output wire led11,
+    output wire led12,
+    output wire led13,
+    output wire led14,
+    output wire led15
   );
 
   // implementation goes here
@@ -492,16 +508,134 @@ module cpu(
   // - 0x30004 read: read clocks passed since cpu starts (in dword, 4 bytes)
   // - 0x30004 write: indicates program stop (will output '\0' through uart tx)
 
+  reg led1_reg;
+  reg led2_reg;
+  reg led3_reg;
+  reg led4_reg;
+  reg led5_reg;
+  reg led6_reg;
+  reg led7_reg;
+  reg led8_reg;
+  reg led9_reg;
+  reg led10_reg;
+  reg led11_reg;
+  reg led12_reg;
+  reg led13_reg;
+  reg led14_reg;
+  reg led15_reg;
+  reg [24: 0] timeer_reg;
+  assign led1 = rst_in;
+  assign led2 = led2_reg;
+  assign led3 = led3_reg;
+  assign led4 = led4_reg;
+  assign led5 = led5_reg;
+  assign led6 = led6_reg;
+  assign led7 = led7_reg;
+  assign led8 = led8_reg;
+  assign led9 = led9_reg;
+  assign led10 = led10_reg;
+  assign led11 = led11_reg;
+  assign led12 = led12_reg;
+  assign led13 = led13_reg;
+  assign led14 = led14_reg;
+  assign led15 = led15_reg;
   always @(posedge clk_in) begin
     if (rst_in) begin
+      // timeer_reg <= timeer_reg + 1;
+      // if (!timeer_reg) begin
+      //   led2_reg <= led15_reg;
+      //   led3_reg <= led2_reg;
+      //   led4_reg <= led3_reg;
+      //   led5_reg <= led4_reg;
+      //   led6_reg <= led5_reg;
+      //   led7_reg <= led6_reg;
+      //   led8_reg <= led7_reg;
+      //   led9_reg <= led8_reg;
+      //   led10_reg <= led9_reg;
+      //   led11_reg <= led10_reg;
+      //   led12_reg <= led11_reg;
+      //   led13_reg <= led12_reg;
+      //   led14_reg <= led13_reg;
+      //   led15_reg <= led14_reg;
+      // end
+      led2_reg <= 0;
+      led3_reg <= 0;
+      led4_reg <= 0;
+      led5_reg <= 0;
+      led6_reg <= 0;
+      led7_reg <= 0;
+      led8_reg <= 0;
+      led9_reg <= 0;
+      led10_reg <= 0;
+      led11_reg <= 0;
+      led12_reg <= 0;
+      led13_reg <= 0;
+      led14_reg <= 0;
+      led15_reg <= 0;
 
     end
     else if (!rdy_in) begin
-
     end
     else begin
-
+      if (if_iq_fetch_enable)
+        led2_reg <= 1;
+      if (if_iq_result_enable)
+        led3_reg <= 1;
+      if (dc_iq_decode_enable)
+        led4_reg <= 1;
+      if (dc_iq_result_enable)
+        led5_reg <= 1;
+      if (iq_rs_instr1_enable)
+        led6_reg <= 1;
+      if (iq_rs_push_result_enable)
+        led7_reg <= 1;
+      if (alu_rs_calc_enable)
+        led8_reg <= 1;
+      if (alu_rs_full)
+        led9_reg <= 1;
+      if (alu_iq_write_enable)
+        led10_reg <= 1;
+      if (iq_rs_cdb_enable)
+        led11_reg <= 1;
+      if (iq_rs_commit_reg_enable)
+        led12_reg <= 1;
+      led13_reg <= 1;
+      led14_reg <= 1;
+      led15_reg <= 1;
     end
   end
-
+  // always @(posedge rst_in) begin
+  //   timeer_reg <= 0;
+  //   led2_reg <= 1;
+  //   led3_reg <= 0;
+  //   led4_reg <= 0;
+  //   led5_reg <= 0;
+  //   led6_reg <= 0;
+  //   led7_reg <= 0;
+  //   led8_reg <= 0;
+  //   led9_reg <= 0;
+  //   led10_reg <= 0;
+  //   led11_reg <= 0;
+  //   led12_reg <= 0;
+  //   led13_reg <= 0;
+  //   led14_reg <= 0;
+  //   led15_reg <= 0;
+  // end
+  // always @(negedge rst_in) begin
+  //   timeer_reg <= 0;
+  //   led2_reg <= 0;
+  //   led3_reg <= 0;
+  //   led4_reg <= 0;
+  //   led5_reg <= 0;
+  //   led6_reg <= 0;
+  //   led7_reg <= 0;
+  //   led8_reg <= 0;
+  //   led9_reg <= 0;
+  //   led10_reg <= 0;
+  //   led11_reg <= 0;
+  //   led12_reg <= 0;
+  //   led13_reg <= 0;
+  //   led14_reg <= 0;
+  //   led15_reg <= 0;
+  // end
 endmodule

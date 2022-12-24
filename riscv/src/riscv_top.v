@@ -10,7 +10,22 @@ module riscv_top
 	input wire			btnC,
 	output wire 		Tx,
 	input wire 			Rx,
-	output wire			led
+	output wire			led,
+	output wire			led1,
+	output wire			led2,
+	output wire			led3,
+	output wire			led4,
+	output wire			led5,
+	output wire			led6,
+	output wire			led7,
+	output wire			led8,
+	output wire			led9,
+	output wire			led10,
+	output wire			led11,
+	output wire			led12,
+	output wire			led13,
+	output wire			led14,
+	output wire			led15
 );
 
 localparam SYS_CLK_FREQ = 100000000;
@@ -109,7 +124,22 @@ cpu cpu0(
 	
 	.io_buffer_full(hci_io_full),
 
-	.dbgreg_dout(cpu_dbgreg_dout)
+	.dbgreg_dout(cpu_dbgreg_dout),
+	.led1(led1),
+	.led2(led2),
+	.led3(led3),
+	.led4(led4),
+	.led5(led5),
+	.led6(led6),
+	.led7(led7),
+	.led8(led8),
+	.led9(led9),
+	.led10(led10),
+	.led11(led11),
+	.led12(led12),
+	.led13(led13),
+	.led14(led14),
+	.led15(led15)
 );
 
 hci #(.SYS_CLK_FREQ(SYS_CLK_FREQ),

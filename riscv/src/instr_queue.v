@@ -46,12 +46,6 @@ module instr_queue (
     input wire [`Func7Type] dc_func7_in,
     input wire [`WordType] dc_imm_in,
 
-    // predictor
-    // output reg pd_predict_enable_out,
-    // output reg [`AddrType] pd_pc_out,
-    // input wire pd_result_enable_in,
-    // input wire pd_prediction_in,
-
     // rs
     // commit flag : if true, rs should stop getting instruction
     output wire rs_commit_flag_out,
@@ -137,7 +131,17 @@ module instr_queue (
     input wire lb_write_need_cdb_enable_in,
     input wire lb_write_need_cdb_in,
     input wire lb_write_ready_enable_in,
-    input wire lb_write_ready_in
+    input wire lb_write_ready_in,
+
+    // iq
+    // predict part
+    output reg pd_predict_enable_out,
+    // output reg [`AddrType] pd_pc_out,
+    input wire pd_predict_result_enable_in,
+    input wire pd_predict_result_in,
+    // update stat part
+    output reg pd_update_stat_enable_out,
+    output reg pd_update_stat_result_out
   );
   assign iq_head_out = iq_head;
   localparam InstrFetchStatIdle = 0;
@@ -177,7 +181,7 @@ module instr_queue (
   reg instr_commit_stat;
   wire [`IqAddrType] iq_len = iq_tail - iq_head;
   reg [`AddrType] decoding_instr_pc;
-  reg pd_result_enable_in;
+  // reg pd_predict_result_enable_in;
   reg pd_prediction_in;
   integer commit_cnt;
   wire [`IqAddrType] idx = iq_head + i;
@@ -223,7 +227,7 @@ module instr_queue (
   always @ (posedge clk) begin
     if (rst) begin
       chip_enable <= `False;
-      pd_result_enable_in <= `True;
+      // pd_predict_result_enable_in <= `True;
       pd_prediction_in <= `True;
       iq_head <= 0;
       iq_tail <= 0;
@@ -235,6 +239,8 @@ module instr_queue (
       clear_flag_out <= `False;
       rs_instr1_enable_out <= `False;
       rs_instr2_enable_out <= `False;
+      pd_predict_enable_out <= `False;
+      pd_update_stat_enable_out <= `False;
       commit_cnt = 0;
     end
     else begin
@@ -337,6 +343,8 @@ module instr_queue (
           mc_store_enable_out <= `False;
           if_fetch_enable_out <= `False;
           dc_decode_enable_out <= `False;
+          pd_predict_enable_out <= `False;
+          pd_update_stat_enable_out <= `False;
           if (clear_flag_out) begin
             clear_flag_out <= `False;
             iq_head <= 0;
@@ -373,7 +381,9 @@ module instr_queue (
                 if (`DEBUGFLAG) $display("storing, pc = %h, addr = %h, val = %h, store type = %h", iq_instr_pc[iq_head], iq_tar_addr[iq_head], iq_result[iq_head], iq_instr_func3[iq_head] & 3); // DEBUG_DISPLAY
               end
               else if (iq_instr_optype[iq_head] == `Opcode_BControl) begin
-                // TODO : Contact with predictor
+                pd_update_stat_enable_out <= `True;
+                pd_update_stat_result_out <= iq_result[iq_head];
+                // pd_update_stat_pc <= iq_instr_pc[iq_head];
                 // $display("pc : %h, result : %h", iq_instr_pc[iq_head], iq_result[iq_head]);
                 if (iq_result[iq_head] != iq_prediction[iq_head]) begin
                   clear_flag_out <= `True;
@@ -425,7 +435,7 @@ module instr_queue (
               iq_instr_rs2[iq_tail] <= dc_rs2_in;
               if (dc_opcode_in == `Opcode_BControl) begin
                 instr_fetch_stat <= InstrFetchStatPridecting;
-                // pd_predict_enable_out <= `True;
+                pd_predict_enable_out <= `True;
                 // pd_pc_out <= decoding_instr_pc;
               end
               else begin
@@ -438,12 +448,12 @@ module instr_queue (
               end
             end
 
-            if (instr_fetch_stat == InstrFetchStatPridecting && pd_result_enable_in) begin
+            if (instr_fetch_stat == InstrFetchStatPridecting && pd_predict_result_enable_in) begin
               instr_fetch_stat <= InstrFetchStatIdle;
               // pd_predict_enable_out <= `False;
-              iq_prediction[iq_tail_dec] <= pd_prediction_in;
+              iq_prediction[iq_tail_dec] <= pd_predict_result_in;
               if_write_pc_sig_out <= `True;
-              if_write_pc_val_out <= pd_prediction_in ? decoding_instr_pc + iq_imm_tail : (decoding_instr_pc + 4);
+              if_write_pc_val_out <= pd_predict_result_in ? decoding_instr_pc + iq_imm_tail : (decoding_instr_pc + 4);
             end
           end
         end

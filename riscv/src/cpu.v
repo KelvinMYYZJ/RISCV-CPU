@@ -161,7 +161,7 @@ module cpu(
   wire [`IqAddrType] iq_rs_commit_reg_rename;
   wire [`WordType] iq_rs_commit_reg_value;
 
-  //instr queue - load buffer
+  // instr queue - load buffer
   wire iq_lb_write_enable;
   wire [`IqAddrType] iq_lb_write_idx;
   wire iq_lb_write_result_enable;
@@ -170,6 +170,15 @@ module cpu(
   wire iq_lb_write_need_cdb;
   wire iq_lb_write_ready_enable;
   wire iq_lb_write_ready;
+
+  // instr queue - predictor
+  wire iq_pd_predict_enable;
+  // wire iq_[`AddrType] pd_pc;
+  wire iq_pd_predict_result_enable;
+  wire iq_pd_predict_result;
+  wire iq_pd_update_stat_enable;
+  wire iq_pd_update_stat_result;
+
 
   // load buffer - rs
   wire lb_rs_full;
@@ -278,10 +287,6 @@ module cpu(
                 .dc_func3_in(dc_iq_func3),
                 .dc_func7_in(dc_iq_func7),
                 .dc_imm_in(dc_iq_imm),
-                // .pd_predict_enable_out(),
-                // .pd_pc_out(),
-                // .pd_result_enable_in(),
-                // .pd_prediction_in(),
                 .rs_commit_flag_out(iq_rs_commit_flag),
                 .rs_instr1_enable_out(iq_rs_instr1_enable),
                 .rs_instr1_idx_out(iq_rs_instr1_idx),
@@ -355,7 +360,12 @@ module cpu(
                 .lb_write_need_cdb_enable_in(iq_lb_write_need_cdb_enable),
                 .lb_write_need_cdb_in(iq_lb_write_need_cdb),
                 .lb_write_ready_enable_in(iq_lb_write_ready_enable),
-                .lb_write_ready_in(iq_lb_write_ready)
+                .lb_write_ready_in(iq_lb_write_ready),
+                .pd_predict_enable_out(iq_pd_predict_enable),
+                .pd_predict_result_enable_in(iq_pd_predict_result_enable),
+                .pd_predict_result_in(iq_pd_predict_result),
+                .pd_update_stat_enable_out(iq_pd_update_stat_enable),
+                .pd_update_stat_result_out(iq_pd_update_stat_result)
               );
   load_buffer lb0(
                 .clk(clk_in),
@@ -412,6 +422,20 @@ module cpu(
              .ram_data_in(mem_din),
              .uart_full_in(io_buffer_full)
            );
+  predictor pd0(
+              .clk(clk_in),
+              .rst(rst_in),
+              .rdy(rdy_in),
+              .chip_enable(),
+              .update_stat(global_update_stat),
+              .clear_flag_in(global_clear_flag),
+              .clear_pc_in(global_clear_pc),
+              .iq_predict_enable_in(iq_pd_predict_enable),
+              .iq_predict_result_enable_out(iq_pd_predict_result_enable),
+              .iq_predict_result_out(iq_pd_predict_result),
+              .iq_update_stat_enable_in(iq_pd_update_stat_enable),
+              .iq_update_stat_result_in(iq_pd_update_stat_result)
+            );
   rs rs0(
        .clk(clk_in),
        .rst(rst_in),

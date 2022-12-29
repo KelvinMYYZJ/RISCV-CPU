@@ -52,53 +52,50 @@ module load_buffer(
     end
     else begin
       chip_enable <= rdy;
-    end
-  end
+      if (rdy) begin
+        if (!update_stat) begin
+          if (clear_flag_in) begin
+            load_stat <= DataLoadStatIdle;
+          end
+          else begin
 
-  always @ (posedge clk) begin
-    if (chip_enable) begin
-      if (!update_stat) begin
-        if (clear_flag_in) begin
-          load_stat <= DataLoadStatIdle;
+          end
         end
         else begin
-
+          iq_write_enable_out <= `False;
+          mc_fetch_enable_out <= `False;
+          if (load_stat == DataLoadStatIdle && rs_load_enable_in) begin
+            load_stat <= DataLoadStatLoading;
+            rs_full_out <= `True;
+            mc_fetch_enable_out <= `True;
+            mc_addr_out <= rs_addr_in;
+            mc_len_out <= ((rs_func3_in & 3) == 2) ? 3 : rs_func3_in & 3;
+            pos_in_iq <= rs_pos_in_iq_in;
+            is_unsigned <= rs_func3_in & 4;
+          end
         end
-      end
-      else begin
-        iq_write_enable_out <= `False;
-        mc_fetch_enable_out <= `False;
-        if (load_stat == DataLoadStatIdle && rs_load_enable_in) begin
-          load_stat <= DataLoadStatLoading;
-          rs_full_out <= `True;
-          mc_fetch_enable_out <= `True;
-          mc_addr_out <= rs_addr_in;
-          mc_len_out <= ((rs_func3_in & 3) == 2) ? 3 : rs_func3_in & 3;
-          pos_in_iq <= rs_pos_in_iq_in;
-          is_unsigned <= rs_func3_in & 4;
-        end
-      end
 
-      if (load_stat == DataLoadStatLoading && mc_result_enable_in) begin
-        rs_full_out <= `False;
-        load_stat <= DataLoadStatIdle;
-        iq_write_enable_out <= `True;
-        iq_write_idx_out <= pos_in_iq;
-        iq_write_result_enable_out <= `True;
-        case (mc_len_out)
-          // Btye
-          0 : iq_write_result_out <= {{24{is_unsigned ? `False : mc_data_in[7]}}, mc_data_in[7 : 0]};
-          // HalfWord
-          1 : iq_write_result_out <= {{16{is_unsigned ? `False : mc_data_in[15]}}, mc_data_in[15 : 0]};
-          // Word
-          3 : iq_write_result_out <= mc_data_in;
-        endcase
-        // iq_write_result_out <= result;
-        // $display("load success!, result : %h", mc_data_in);
-        iq_write_ready_enable_out <= `True;
-        iq_write_ready_out <= `True;
-        iq_write_need_cdb_enable_out <= `True;
-        iq_write_need_cdb_out <= `True;
+        if (load_stat == DataLoadStatLoading && mc_result_enable_in) begin
+          rs_full_out <= `False;
+          load_stat <= DataLoadStatIdle;
+          iq_write_enable_out <= `True;
+          iq_write_idx_out <= pos_in_iq;
+          iq_write_result_enable_out <= `True;
+          case (mc_len_out)
+            // Btye
+            0 : iq_write_result_out <= {{24{is_unsigned ? `False : mc_data_in[7]}}, mc_data_in[7 : 0]};
+            // HalfWord
+            1 : iq_write_result_out <= {{16{is_unsigned ? `False : mc_data_in[15]}}, mc_data_in[15 : 0]};
+            // Word
+            3 : iq_write_result_out <= mc_data_in;
+          endcase
+          // iq_write_result_out <= result;
+          // $display("load success!, result : %h", mc_data_in);
+          iq_write_ready_enable_out <= `True;
+          iq_write_ready_out <= `True;
+          iq_write_need_cdb_enable_out <= `True;
+          iq_write_need_cdb_out <= `True;
+        end
       end
     end
   end

@@ -409,7 +409,8 @@ module cpu(
              .ram_rw_select_out(mem_wr),
              .ram_addr_out(mem_a),
              .ram_data_out(mem_dout),
-             .ram_data_in(mem_din)
+             .ram_data_in(mem_din),
+             .uart_full_in(io_buffer_full)
            );
   rs rs0(
        .clk(clk_in),
@@ -577,30 +578,40 @@ module cpu(
     else if (!rdy_in) begin
     end
     else begin
-      if (if_iq_fetch_enable)
-        led2_reg <= 1;
-      if (if_iq_result_enable)
-        led3_reg <= 1;
-      if (dc_iq_decode_enable)
-        led4_reg <= 1;
-      if (dc_iq_result_enable)
-        led5_reg <= 1;
-      if (iq_rs_instr1_enable)
-        led6_reg <= 1;
-      if (iq_rs_push_result_enable)
-        led7_reg <= 1;
-      if (alu_rs_calc_enable)
-        led8_reg <= 1;
-      if (alu_rs_full)
-        led9_reg <= 1;
-      if (alu_iq_write_enable)
-        led10_reg <= 1;
-      if (iq_rs_cdb_enable)
-        led11_reg <= 1;
-      if (iq_rs_commit_reg_enable)
-        led12_reg <= 1;
-      led13_reg <= 1;
-      led14_reg <= 1;
+      // if (if_iq_fetch_enable)
+      //   led2_reg <= 1;
+      // if (if_iq_result_enable)
+      //   led3_reg <= 1;
+      // if (dc_iq_decode_enable)
+      //   led4_reg <= 1;
+      // if (dc_iq_result_enable)
+      //   led5_reg <= 1;
+      // if (iq_rs_instr1_enable)
+      //   led6_reg <= 1;
+      // if (iq_rs_push_result_enable)
+      //   led7_reg <= 1;
+      // if (alu_rs_calc_enable)
+      //   led8_reg <= 1;
+      // if (alu_rs_full)
+      //   led9_reg <= 1;
+      // if (alu_iq_write_enable)
+      //   led10_reg <= 1;
+      // if (iq_rs_cdb_enable)
+      //   led11_reg <= 1;
+      // if (iq_rs_commit_reg_enable)
+      //   led12_reg <= 1;
+      led2_reg <= if_iq_fetch_enable;
+      led3_reg <= if_iq_result_enable;
+      led4_reg <= dc_iq_decode_enable;
+      led5_reg <= dc_iq_result_enable;
+      led6_reg <= iq_rs_instr1_enable;
+      led7_reg <= iq_rs_push_result_enable;
+      led8_reg <= alu_rs_calc_enable;
+      led9_reg <= alu_rs_full;
+      led10_reg <= alu_iq_write_enable;
+      led11_reg <= iq_rs_cdb_enable;
+      led12_reg <= iq_rs_commit_reg_enable;
+      led14_reg <= 0;
       led15_reg <= 1;
     end
   end

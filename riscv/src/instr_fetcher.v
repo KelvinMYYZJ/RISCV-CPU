@@ -39,30 +39,27 @@ module instr_fetcher
     end
     else begin
       chip_enable <= rdy;
-    end
-  end
-
-  always @ (posedge clk) begin
-    if (chip_enable) begin
-      if (update_stat) begin
-        if (iq_write_pc_sig_in)
-          pc <= iq_write_pc_val_in;
-      end
-      else begin
-        mc_fetch_enable_out <= `False;
-        iq_result_enable_out <= `False;
-        if (clear_flag_in) begin
-          pc <= clear_pc_in;
+      if (rdy) begin
+        if (update_stat) begin
+          if (iq_write_pc_sig_in)
+            pc <= iq_write_pc_val_in;
         end
         else begin
-          if (iq_fetch_enable_in) begin
-            mc_fetch_enable_out <= `True;
-            mc_addr_out <= pc;
+          mc_fetch_enable_out <= `False;
+          iq_result_enable_out <= `False;
+          if (clear_flag_in) begin
+            pc <= clear_pc_in;
           end
-          if (mc_result_enable_in) begin
-            iq_result_enable_out <= `True;
-            iq_instr_out <= mc_data_in;
-            iq_pc_out <= mc_addr_out;
+          else begin
+            if (iq_fetch_enable_in) begin
+              mc_fetch_enable_out <= `True;
+              mc_addr_out <= pc;
+            end
+            if (mc_result_enable_in) begin
+              iq_result_enable_out <= `True;
+              iq_instr_out <= mc_data_in;
+              iq_pc_out <= mc_addr_out;
+            end
           end
         end
       end

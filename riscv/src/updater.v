@@ -15,10 +15,7 @@ module updater
     end
     else begin
       chip_enable <= rdy;
+      if (rdy) update_stat <= ~update_stat;
     end
-  end
-
-  always @(posedge clk) begin
-    if (chip_enable == `True) update_stat <= ~update_stat;
   end
 endmodule //updater

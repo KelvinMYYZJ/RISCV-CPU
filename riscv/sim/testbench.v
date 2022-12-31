@@ -1,6 +1,6 @@
 // testbench top module file
 // for simulation only
-
+`include "defines.v"
 `timescale 1ns/1ps
 module testbench;
 
@@ -26,9 +26,15 @@ initial begin
 end
 
 initial begin
+  if (`RECORD_WAVE_FLAG)
+  begin 
      $dumpfile("test.vcd");
      $dumpvars(0, testbench);
-    //  #10000 $finish;
+  end
+     #`TICK_LIMIT 
+     if (`TICK_LIMIT) begin
+        $finish; 
+     end
 end
 
 endmodule

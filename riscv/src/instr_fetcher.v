@@ -28,14 +28,25 @@ module instr_fetcher
     output reg [`AddrType] iq_pc_out,
     output reg iq_result_enable_out
   );
+  integer i;
   reg [`AddrType] pc;
-  // reg vaild
-  // reg [`InstrType] icache[];
+  // direct-mapped icache
+  reg ic_vaild [`ICacheArrayRange];
+  reg [`InstrType] ic_instr[`ICacheArrayRange];
+  reg [`ICacheTagRange] ic_tag [`ICacheArrayRange];
+  wire instr_in_cache;
+  wire [`InstrType] cache_instr;
+
+  assign instr_in_cache = ic_vaild[pc[`ICacheIdxRange]] && ic_tag[pc[`ICacheIdxRange]] == pc[`ICacheTagRange];
+  assign cache_instr = instr_in_cache ? ic_instr[pc[`ICacheIdxRange]] : `ZeroWord;
   always @ (posedge clk) begin
     if (rst) begin
       chip_enable <= `False;
       pc <= `ZeroWord;
       // clear icache
+      for (i = 0;i < `ICacheLen;i = i + 1) begin
+        ic_vaild[i] = `False;
+      end
     end
     else begin
       chip_enable <= rdy;
@@ -52,13 +63,24 @@ module instr_fetcher
           end
           else begin
             if (iq_fetch_enable_in) begin
-              mc_fetch_enable_out <= `True;
-              mc_addr_out <= pc;
+              if (instr_in_cache) begin
+                iq_result_enable_out <= `True;
+                iq_instr_out <= cache_instr;
+                iq_pc_out <= pc;
+              end
+              else begin
+                mc_fetch_enable_out <= `True;
+                mc_addr_out <= pc;
+              end
             end
             if (mc_result_enable_in) begin
               iq_result_enable_out <= `True;
               iq_instr_out <= mc_data_in;
               iq_pc_out <= mc_addr_out;
+              if (`CACHE_VAILD_FLAG)
+                ic_vaild[mc_addr_out[`ICacheIdxRange]] = `True;
+              ic_tag[mc_addr_out[`ICacheIdxRange]] = mc_addr_out[`ICacheTagRange];
+              ic_instr[mc_addr_out[`ICacheIdxRange]] = mc_data_in;
             end
           end
         end

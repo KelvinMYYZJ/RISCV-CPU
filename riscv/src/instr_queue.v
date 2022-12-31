@@ -368,17 +368,17 @@ module instr_queue (
             if (iq_head != iq_tail && iq_ready[iq_head] && !iq_need_cdb[iq_head] && instr_commit_stat == InstrCommitStatIdle) begin
               iq_head <= iq_head + 1;
               commit_cnt = commit_cnt + 1;
-              if (`SHOWCOMMITLAG)
+              if (`SHOW_COMMIT_FLAG)
                 if (!(commit_cnt & 16'hFF))
                   $display("commit num : %h", commit_cnt);
-              if (`DEBUGFLAG) $display("commiting, commit_cnt = %h, pc = %h", commit_cnt, iq_instr_pc[iq_head]); // DEBUG_DISPLAY
+              if (`DEBUG_FLAG) $display("commiting, commit_cnt = %h, pc = %h", commit_cnt, iq_instr_pc[iq_head]); // DEBUG_DISPLAY
               if (iq_instr_optype[iq_head] == `Opcode_StoreMem) begin
                 mc_store_enable_out <= `True;
                 instr_commit_stat <= InstrCommitStatStoring;
                 mc_addr_out <= iq_tar_addr[iq_head];
                 mc_data_out <= iq_result[iq_head];
                 mc_len_out <= ((iq_instr_func3[iq_head] & 3) == 2) ? 3 : iq_instr_func3[iq_head] & 3;
-                if (`DEBUGFLAG) $display("storing, pc = %h, addr = %h, val = %h, store type = %h", iq_instr_pc[iq_head], iq_tar_addr[iq_head], iq_result[iq_head], iq_instr_func3[iq_head] & 3); // DEBUG_DISPLAY
+                if (`DEBUG_FLAG) $display("storing, pc = %h, addr = %h, val = %h, store type = %h", iq_instr_pc[iq_head], iq_tar_addr[iq_head], iq_result[iq_head], iq_instr_func3[iq_head] & 3); // DEBUG_DISPLAY
               end
               else if (iq_instr_optype[iq_head] == `Opcode_BControl) begin
                 pd_update_stat_enable_out <= `True;
@@ -394,7 +394,7 @@ module instr_queue (
               end
               else begin
                 if (iq_instr_rd[iq_head]) begin
-                  if (`DEBUGFLAG) $display("nxt_pc : %h", iq_instr_pc[iq_head]); // DEBUG_DISPLAY
+                  if (`DEBUG_FLAG) $display("nxt_pc : %h", iq_instr_pc[iq_head]); // DEBUG_DISPLAY
                   rs_commit_reg_enable_out <= `True;
                   rs_commit_reg_idx_out <= iq_instr_rd[iq_head];
                   rs_commit_reg_value_out <= iq_result[iq_head];

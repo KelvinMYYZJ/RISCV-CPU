@@ -169,7 +169,7 @@ module rs (
               end
           end
           if (iq_commit_reg_enable_in) begin
-            if (`DEBUGFLAG) begin
+            if (`DEBUG_FLAG) begin
               for (i = 0;i < `RegLen; i = i + 1) begin
                 $display("%h : %h", i, reg_val[i]); // DEBUG_DISPLAY
               end

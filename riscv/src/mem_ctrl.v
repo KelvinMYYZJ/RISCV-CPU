@@ -43,6 +43,7 @@ module mem_ctrl (
     input wire uart_full_in
   );
   reg stall_for_io;
+  reg [2: 0]stall_counter;
   wire accessing_io_flag = (iq_addr_in & 32'h00030000) == 32'h00030000;
   wire uart_ban_store_flag = (uart_full_in || stall_for_io) && accessing_io_flag;
   localparam idle = 0;
@@ -60,6 +61,7 @@ module mem_ctrl (
       chip_enable <= `False;
       // ram_enable <= `False;
       // ram_addr_out <= `MaxWord;
+      ram_addr_out <= `ZeroWord;
       ram_rw_select_out <= 0;
       stat <= idle;
       stall_for_io <= `False;
@@ -67,9 +69,14 @@ module mem_ctrl (
     else begin
       chip_enable <= rdy;
       if (rdy) begin
-        stall_for_io <= `False;
+        if (stall_for_io) begin
+          stall_counter <= stall_counter - 1;
+          if (!stall_counter)
+            stall_for_io <= `False;
+        end
         if (clear_flag_in) begin
           stat <= idle;
+          ram_addr_out <= `ZeroWord;
           ram_rw_select_out <= 0;
           iq_pending <= `False;
           if_pending <= `False;
@@ -121,6 +128,7 @@ module mem_ctrl (
             if (ram_io_stat - 1 == 3) begin
               // ram_enable <= `False;
               // ram_addr_out <= `MaxWord;
+              ram_addr_out <= `ZeroWord;
               stat <= idle;
               if_result_enable_out <= `True;
             end
@@ -138,6 +146,7 @@ module mem_ctrl (
             if (ram_io_stat - 1 == lb_len_in) begin
               // ram_enable <= `False;
               // ram_addr_out <= `MaxWord;
+              ram_addr_out <= `ZeroWord;
               stat <= idle;
               lb_result_enable_out <= `True;
             end
@@ -154,11 +163,14 @@ module mem_ctrl (
             if (ram_io_stat == iq_len_in) begin
               // ram_enable <= `False;
               ram_rw_select_out <= 0;
+              ram_addr_out <= `ZeroWord;
               // ram_addr_out <= `MaxWord;
               stat <= idle;
               iq_result_enable_out <= `True;
-              if (accessing_io_flag)
+              if (accessing_io_flag) begin
                 stall_for_io <= `True;
+                stall_counter <= 1;
+              end
             end
           end
         end

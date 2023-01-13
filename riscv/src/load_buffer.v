@@ -31,6 +31,8 @@ module load_buffer(
     output reg [`WordType] iq_write_result_out,
     output reg iq_write_need_cdb_enable_out,
     output reg iq_write_need_cdb_out,
+    output reg iq_write_tar_addr_enable_out,
+    output reg [`AddrType] iq_write_tar_addr_out,
     output reg iq_write_ready_enable_out,
     output reg iq_write_ready_out
   );
@@ -48,6 +50,7 @@ module load_buffer(
       iq_write_enable_out <= `False;
       iq_write_result_enable_out <= `False;
       iq_write_need_cdb_enable_out <= `False;
+      iq_write_tar_addr_enable_out <= `False;
       iq_write_ready_enable_out <= `False;
     end
     else begin
@@ -64,14 +67,28 @@ module load_buffer(
         else begin
           iq_write_enable_out <= `False;
           mc_fetch_enable_out <= `False;
+          iq_write_tar_addr_enable_out <= `False;
           if (load_stat == DataLoadStatIdle && rs_load_enable_in) begin
-            load_stat <= DataLoadStatLoading;
-            rs_full_out <= `True;
-            mc_fetch_enable_out <= `True;
-            mc_addr_out <= rs_addr_in;
-            mc_len_out <= ((rs_func3_in & 3) == 2) ? 3 : rs_func3_in & 3;
-            pos_in_iq <= rs_pos_in_iq_in;
-            is_unsigned <= rs_func3_in & 4;
+            if (rs_addr_in == 32'h00030000) begin
+              iq_write_enable_out <= `True;
+              iq_write_idx_out <= rs_pos_in_iq_in;
+              iq_write_result_enable_out <= `True;
+              iq_write_ready_enable_out <= `True;
+              iq_write_ready_out <= `False;
+              iq_write_need_cdb_enable_out <= `True;
+              iq_write_need_cdb_out <= `False;
+              iq_write_tar_addr_enable_out <= `True;
+              iq_write_tar_addr_out <= rs_addr_in;
+            end
+            else begin
+              load_stat <= DataLoadStatLoading;
+              rs_full_out <= `True;
+              mc_fetch_enable_out <= `True;
+              mc_addr_out <= rs_addr_in;
+              mc_len_out <= ((rs_func3_in & 3) == 2) ? 3 : rs_func3_in & 3;
+              pos_in_iq <= rs_pos_in_iq_in;
+              is_unsigned <= rs_func3_in & 4;
+            end
           end
         end
 

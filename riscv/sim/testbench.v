@@ -31,10 +31,10 @@ initial begin
      $dumpfile("test.vcd");
      $dumpvars(0, testbench);
   end
-     #`TICK_LIMIT 
-     if (`TICK_LIMIT) begin
-        $finish; 
-     end
+   #`TICK_LIMIT 
+   if (`TICK_LIMIT) begin
+      $finish; 
+   end
 end
 
 endmodule

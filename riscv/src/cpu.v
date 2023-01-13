@@ -101,6 +101,11 @@ module cpu(
   wire [1: 0] iq_mc_len;
   wire [`WordType] iq_mc_data;
   wire iq_mc_result_enable;
+  wire iq_io_mc_fetch_enable;
+  wire [`AddrType] iq_io_mc_addr;
+  wire [1: 0] iq_io_mc_len;
+  wire iq_io_mc_result_enable;
+  wire [`WordType] iq_io_mc_data;
   //instr queue - rs
   wire iq_rs_commit_flag;
   wire iq_rs_instr1_enable;
@@ -168,6 +173,8 @@ module cpu(
   wire [`WordType] iq_lb_write_result;
   wire iq_lb_write_need_cdb_enable;
   wire iq_lb_write_need_cdb;
+  wire iq_lb_write_tar_addr_enable;
+  wire [`AddrType] iq_lb_write_tar_addr;
   wire iq_lb_write_ready_enable;
   wire iq_lb_write_ready;
 
@@ -271,6 +278,11 @@ module cpu(
                 .mc_len_out(iq_mc_len),
                 .mc_data_out(iq_mc_data),
                 .mc_result_enable_in(iq_mc_result_enable),
+                .mc_io_fetch_enable_out(iq_io_mc_fetch_enable),
+                .mc_io_addr_out(iq_io_mc_addr),
+                .mc_io_len_out(iq_io_mc_len),
+                .mc_io_result_enable_in(iq_io_mc_result_enable),
+                .mc_io_data_in(iq_io_mc_data),
                 .if_fetch_enable_out(if_iq_fetch_enable),
                 .if_instr_in(if_iq_instr),
                 .if_pc_in(if_iq_pc),
@@ -359,6 +371,8 @@ module cpu(
                 .lb_write_result_in(iq_lb_write_result),
                 .lb_write_need_cdb_enable_in(iq_lb_write_need_cdb_enable),
                 .lb_write_need_cdb_in(iq_lb_write_need_cdb),
+                .lb_write_tar_addr_enable_in(iq_lb_write_tar_addr_enable),
+                .lb_write_tar_addr_in(iq_lb_write_tar_addr),
                 .lb_write_ready_enable_in(iq_lb_write_ready_enable),
                 .lb_write_ready_in(iq_lb_write_ready),
                 .pd_predict_enable_out(iq_pd_predict_enable),
@@ -391,6 +405,8 @@ module cpu(
                 .iq_write_result_out(iq_lb_write_result),
                 .iq_write_need_cdb_enable_out(iq_lb_write_need_cdb_enable),
                 .iq_write_need_cdb_out(iq_lb_write_need_cdb),
+                .iq_write_tar_addr_enable_out(iq_lb_write_tar_addr_enable),
+                .iq_write_tar_addr_out(iq_lb_write_tar_addr),
                 .iq_write_ready_enable_out(iq_lb_write_ready_enable),
                 .iq_write_ready_out(iq_lb_write_ready)
               );
@@ -416,6 +432,11 @@ module cpu(
              .iq_len_in(iq_mc_len),
              .iq_data_in(iq_mc_data),
              .iq_result_enable_out(iq_mc_result_enable),
+             .iq_io_fetch_enable_in(iq_io_mc_fetch_enable),
+             .iq_io_addr_in(iq_io_mc_addr),
+             .iq_io_len_in(iq_io_mc_len),
+             .iq_io_result_enable_out(iq_io_mc_result_enable),
+             .iq_io_data_out(iq_io_mc_data),
              .ram_rw_select_out(mem_wr),
              .ram_addr_out(mem_a),
              .ram_data_out(mem_dout),

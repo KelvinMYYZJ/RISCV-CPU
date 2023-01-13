@@ -24,12 +24,21 @@ module mem_ctrl (
     output reg [`WordType] lb_data_out,
 
     // instr queue
+    // commit storing
     input wire iq_store_enable_in,
     input wire [`AddrType] iq_addr_in,
     // 0(Byte) or 1(Halfword) or 3(Word)
     input wire [1: 0] iq_len_in,
     input wire [`WordType] iq_data_in,
     output reg iq_result_enable_out,
+    
+    // commit io reading
+    input wire iq_io_fetch_enable_in,
+    input wire [`AddrType] iq_io_addr_in,
+    // 0(Byte) or 1(Halfword) or 3(Word)
+    input wire [1: 0] iq_io_len_in,
+    output reg iq_io_result_enable_out,
+    output reg [`WordType] iq_io_data_out,
 
     // ram
     // output reg ram_enable,
@@ -50,10 +59,12 @@ module mem_ctrl (
   localparam deal_if = 1;
   localparam deal_lb = 2;
   localparam deal_iq = 3;
-  reg [1: 0] stat;
+  localparam deal_iq_io = 4;
+  reg [2: 0] stat;
   reg if_pending;
   reg lb_pending;
   reg iq_pending;
+  reg iq_io_pending;
   // which byte is io now
   reg [2: 0] ram_io_stat;
   always @ (posedge clk) begin
@@ -86,9 +97,11 @@ module mem_ctrl (
           if (iq_store_enable_in) iq_pending <= `True;
           if (if_fetch_enable_in) if_pending <= `True;
           if (lb_fetch_enable_in) lb_pending <= `True;
+          if (iq_io_fetch_enable_in) iq_io_pending <= `True;
           if (!update_stat) begin
             if_result_enable_out <= `False;
             lb_result_enable_out <= `False;
+            iq_io_result_enable_out <= `False;
             iq_result_enable_out <= `False;
             if (stat == idle) begin
               if ((iq_store_enable_in || iq_pending) && !uart_ban_store_flag) begin
@@ -104,6 +117,14 @@ module mem_ctrl (
                 stat <= deal_if;
                 ram_io_stat <= 0;
                 ram_addr_out <= if_addr_in;
+                ram_rw_select_out <= 0;
+              end
+              else if (iq_io_fetch_enable_in || iq_io_pending) begin
+                iq_io_data_out <= `ZeroWord;
+                iq_io_pending <= `False;
+                stat <= deal_iq_io;
+                ram_io_stat <= 0;
+                ram_addr_out <= iq_io_addr_in;
                 ram_rw_select_out <= 0;
               end
               else if (lb_fetch_enable_in || lb_pending) begin
@@ -125,6 +146,7 @@ module mem_ctrl (
               3: if_data_out[23 : 16] <= ram_data_in;
               4: if_data_out[31 : 24] <= ram_data_in;
             endcase
+            if (ram_io_stat == 3) ram_addr_out <= `ZeroWord;
             if (ram_io_stat - 1 == 3) begin
               // ram_enable <= `False;
               // ram_addr_out <= `MaxWord;
@@ -143,12 +165,32 @@ module mem_ctrl (
               3: lb_data_out[23 : 16] <= ram_data_in;
               4: lb_data_out[31 : 24] <= ram_data_in;
             endcase
+            if (ram_io_stat == lb_len_in) ram_addr_out <= `ZeroWord;
             if (ram_io_stat - 1 == lb_len_in) begin
               // ram_enable <= `False;
               // ram_addr_out <= `MaxWord;
               ram_addr_out <= `ZeroWord;
               stat <= idle;
               lb_result_enable_out <= `True;
+            end
+          end
+
+          if (stat == deal_iq_io) begin
+            ram_io_stat <= ram_io_stat + 1;
+            ram_addr_out <= ram_addr_out + 1;
+            case (ram_io_stat)
+              1: iq_io_data_out[7 : 0] <= ram_data_in;
+              2: iq_io_data_out[15 : 8] <= ram_data_in;
+              3: iq_io_data_out[23 : 16] <= ram_data_in;
+              4: iq_io_data_out[31 : 24] <= ram_data_in;
+            endcase
+            if (ram_io_stat == iq_io_len_in) ram_addr_out <= `ZeroWord;
+            if (ram_io_stat - 1 == iq_io_len_in) begin
+              // ram_enable <= `False;
+              // ram_addr_out <= `MaxWord;
+              ram_addr_out <= `ZeroWord;
+              stat <= idle;
+              iq_io_result_enable_out <= `True;
             end
           end
 

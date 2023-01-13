@@ -18,12 +18,21 @@ module instr_queue (
     output reg [`IqAddrType] iq_first_store_idx_out,
 
     //mem ctrl
+    // commit store
     output reg mc_store_enable_out,
     output reg [`AddrType] mc_addr_out,
     // 0(Byte) or 1(Halfword) or 3(Word)
     output reg [1: 0] mc_len_out,
     output reg [`WordType] mc_data_out,
     input wire mc_result_enable_in,
+
+    // commit io read
+    output reg mc_io_fetch_enable_out,
+    output reg [`AddrType] mc_io_addr_out,
+    // 0(Byte) or 1(Halfword) or 3(Word)
+    output reg [1: 0] mc_io_len_out,
+    input wire mc_io_result_enable_in,
+    input wire [`WordType] mc_io_data_in,
 
     // instr fetch
     output reg if_fetch_enable_out,
@@ -130,6 +139,8 @@ module instr_queue (
     input wire [`WordType] lb_write_result_in,
     input wire lb_write_need_cdb_enable_in,
     input wire lb_write_need_cdb_in,
+    input wire lb_write_tar_addr_enable_in,
+    input wire [`AddrType] lb_write_tar_addr_in,
     input wire lb_write_ready_enable_in,
     input wire lb_write_ready_in,
 
@@ -151,6 +162,7 @@ module instr_queue (
 
   localparam InstrCommitStatIdle = 0;
   localparam InstrCommitStatStoring = 1;
+  localparam InstrCommitStatFetchingIO = 2;
 
   integer order;
   integer break_flag;
@@ -177,8 +189,9 @@ module instr_queue (
   reg [`AddrType] iq_instr_pc [`IqIdxRange];
   reg [`AddrType] iq_tar_addr [`IqIdxRange];
   reg iq_prediction [`IqIdxRange];
+  reg iq_need_io_read [`IqIdxRange];
   reg [1: 0] instr_fetch_stat;
-  reg instr_commit_stat;
+  reg [2: 0] instr_commit_stat;
   wire [`IqAddrType] iq_len = iq_tail - iq_head;
   reg [`AddrType] decoding_instr_pc;
   // reg pd_predict_result_enable_in;
@@ -236,6 +249,7 @@ module instr_queue (
       dc_decode_enable_out <= `False;
       if_fetch_enable_out <= `False;
       mc_store_enable_out <= `False;
+      mc_io_fetch_enable_out <= `False;
       clear_flag_out <= `False;
       rs_instr1_enable_out <= `False;
       rs_instr2_enable_out <= `False;
@@ -293,6 +307,10 @@ module instr_queue (
             if (lb_write_ready_enable_in) begin
               iq_ready[lb_write_idx_in] <= lb_write_ready_in;
             end
+            if (lb_write_tar_addr_enable_in) begin
+              iq_tar_addr[lb_write_idx_in] <= lb_write_tar_addr_in;
+              iq_need_io_read[lb_write_idx_in] <= `True;
+            end
           end
           // TODO? : other write
           // TODO : find the first store instr
@@ -341,6 +359,7 @@ module instr_queue (
           rs_cdb_enable_out <= `False;
           rs_commit_reg_enable_out <= `False;
           mc_store_enable_out <= `False;
+          mc_io_fetch_enable_out <= `False;
           if_fetch_enable_out <= `False;
           dc_decode_enable_out <= `False;
           pd_predict_enable_out <= `False;
@@ -364,6 +383,13 @@ module instr_queue (
               end
             if (instr_commit_stat == InstrCommitStatStoring && mc_result_enable_in) begin
               instr_commit_stat <= InstrCommitStatIdle;
+            end
+            if (instr_commit_stat == InstrCommitStatFetchingIO && mc_io_result_enable_in) begin
+              instr_commit_stat <= InstrCommitStatIdle;
+              mc_io_fetch_enable_out <= `False;
+              iq_ready[iq_head] <= `True;
+              iq_need_cdb[iq_head] <= `True;
+              iq_result[iq_head] <= mc_io_data_in;
             end
             if (iq_head != iq_tail && iq_ready[iq_head] && !iq_need_cdb[iq_head] && instr_commit_stat == InstrCommitStatIdle) begin
               iq_head <= iq_head + 1;
@@ -407,6 +433,13 @@ module instr_queue (
                 end
               end
             end
+            if (iq_head != iq_tail && !iq_ready[iq_head] && iq_need_io_read[iq_head] && instr_commit_stat == InstrCommitStatIdle) begin
+              instr_commit_stat <= InstrCommitStatFetchingIO;
+              iq_need_io_read[iq_head] <= `False;
+              mc_io_fetch_enable_out <= `True;
+              mc_io_addr_out <= iq_tar_addr[iq_head];
+              mc_io_len_out <= 0;
+            end
 
             if (instr_fetch_stat == InstrFetchStatIdle && iq_len + 1 < `IqLen) begin
               if_fetch_enable_out <= `True;
@@ -424,6 +457,7 @@ module instr_queue (
               iq_tail <= iq_tail + 1;
               iq_ready[iq_tail] <= `False;
               iq_in_rs[iq_tail] <= `False;
+              iq_need_io_read[iq_tail] <= `False;
               iq_need_cdb[iq_tail] <= `False;
               iq_instr_func3[iq_tail] <= dc_func3_in;
               iq_instr_func7[iq_tail] <= dc_func7_in;

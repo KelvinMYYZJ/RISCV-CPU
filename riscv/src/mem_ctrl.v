@@ -54,7 +54,7 @@ module mem_ctrl (
   reg stall_for_io;
   reg [2: 0]stall_counter;
   wire accessing_io_flag = (iq_addr_in & 32'h00030000) == 32'h00030000;
-  wire uart_ban_store_flag = (uart_full_in || stall_for_io) && accessing_io_flag;
+  wire uart_ban_store_flag = (1 ^ `SIM) && (uart_full_in || stall_for_io) && accessing_io_flag;
   localparam idle = 0;
   localparam deal_if = 1;
   localparam deal_lb = 2;

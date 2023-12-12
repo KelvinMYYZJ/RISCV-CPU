@@ -8,7 +8,7 @@ sim_testcase = $(prefix)/testcase/sim
 fpga_testcase = $(prefix)/testcase/fpga
 
 sim = $(prefix)/sim
-riscv_toolchain = /opt/riscv
+riscv_toolchain = /opt/riscv32
 riscv_bin = $(riscv_toolchain)/bin
 sys = $(prefix)/sys
 
@@ -24,7 +24,7 @@ build_sim_test: _no_testcase_name_check
 	@$(riscv_bin)/riscv32-unknown-elf-as -o $(sys)/rom.o -march=rv32i $(sys)/rom.s
 	@cp $(sim_testcase)/*$(name)*.c $(testspace)/test.c
 	@$(riscv_bin)/riscv32-unknown-elf-gcc -o $(testspace)/test.o -I $(sys) -c $(testspace)/test.c -O2 -march=rv32i -mabi=ilp32 -Wall
-	@$(riscv_bin)/riscv32-unknown-elf-ld -T $(sys)/memory.ld $(sys)/rom.o $(testspace)/test.o -L $(riscv_toolchain)/riscv32-unknown-elf/lib/ -L $(riscv_toolchain)/lib/gcc/riscv32-unknown-elf/10.1.0/ -lc -lgcc -lm -lnosys -o $(testspace)/test.om
+	@$(riscv_bin)/riscv32-unknown-elf-ld -T $(sys)/memory.ld $(sys)/rom.o $(testspace)/test.o -L $(riscv_toolchain)/riscv32-unknown-elf/lib/ -L $(riscv_toolchain)/lib/gcc/riscv32-unknown-elf/13.2.0/ -lc -lgcc -lm -lnosys -o $(testspace)/test.om
 	@$(riscv_bin)/riscv32-unknown-elf-objcopy -O verilog $(testspace)/test.om $(testspace)/test.data
 	@$(riscv_bin)/riscv32-unknown-elf-objdump -D $(testspace)/test.om > $(testspace)/test.dump
 

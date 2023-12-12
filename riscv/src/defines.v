@@ -2,6 +2,7 @@
 `define SHOW_COMMIT_FLAG 0
 `define CACHE_VAILD_FLAG 1
 `define RECORD_WAVE_FLAG 0
+`define SIM 1
 `define TICK_LIMIT 0 // 0 for not stop manually
 
 `define Opcode_LoadMem 7'b0000011   //ImmType = I
